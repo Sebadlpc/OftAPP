@@ -47,3 +47,38 @@ stateDiagram-v2
 
     DetalleExamen --> [*]
     HistorialClinico --> [*]
+
+
+---
+
+4. Pantallas Principales del MVP
+
+Las propuestas de interfaz y maquetas visuales creadas se organizan en la carpeta docs/diseno/interfaces/:
+
+ login_screen.png — Login / Autenticación: Validación de usuarios ficticios con asignación de permisos según el rol elegido (Médico, Tecnólogo, Administrativo, Paciente, Admin).
+
+ dashboard_screen.png — Inicio / Dashboard: Panel central con accesos directos, resumen de estados de atenciones y botón de acción flotante (FAB).
+
+ registro_atencion.png — Registro de Atención: Formulario de captura para datos básicos del paciente, fecha, sucursal, tipo de examen e indicación de ojo evaluado.
+
+ carga_documentos.png — Carga de Documentos: Vinculación visual y asociación simulada de reportes en PDF, imágenes o planillas.
+
+ listado_busqueda.png — Listado y Búsqueda: Búsqueda rápida por paciente y filtrado mediante Chips interactivos según estado y sucursal.
+
+ detalle_examen.png — Detalle del Examen: Ficha completa de la atención, visualización del documento adjunto, observaciones y cambio de estado de entrega.
+
+ historial_clinico.png — Historial Clínico: Vista cronológica del historial de exámenes previos por paciente para apoyo en la revisión médica.
+
+5. Integrantes del Equipo
+
+Nombre del Equipo: Vitoco lover’s
+
+Sección: 001D
+
+Integrantes:
+
+ Sebastian De La Paz — Líder / Desarrollador Backend/Frontend
+
+ Diego Barria — Desarrollador Backend/Frontend
+
+ Fernando Castillo — Desarrollador Backend/Frontend

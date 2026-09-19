@@ -69,6 +69,8 @@ Las propuestas de interfaz y maquetas visuales creadas se organizan en la carpet
 
  historial_clinico.png — Historial Clínico: Vista cronológica del historial de exámenes previos por paciente para apoyo en la revisión médica.
 
+---
+
 5. Integrantes del Equipo
 
 Nombre del Equipo: Vitoco lover’s
@@ -82,6 +84,8 @@ Integrantes:
  Diego Barria — Desarrollador Backend/Frontend
 
  Fernando Castillo — Desarrollador Backend/Frontend
+
+--- 
 
 6. Tecnologías Utilizadas
 

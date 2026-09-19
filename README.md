@@ -21,9 +21,9 @@
 
 ---
 
-## 3. Flujo de Usuario (Diagrama de Actividad UML)[cite: 3]
+## 3. Flujo de Usuario (Diagrama de Actividad UML)
 
-El recorrido principal del usuario dentro de la aplicación está representado visualmente en la siguiente estructura[cite: 3]:
+El recorrido principal del usuario dentro de la aplicación está representado visualmente en la siguiente estructura:
 
 ```mermaid
 stateDiagram-v2

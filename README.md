@@ -48,7 +48,7 @@ stateDiagram-v2
     DetalleExamen --> [*]
     HistorialClinico --> [*]
 
-
+```
 ---
 
 4. Pantallas Principales del MVP
@@ -82,3 +82,15 @@ Integrantes:
  Diego Barria — Desarrollador Backend/Frontend
 
  Fernando Castillo — Desarrollador Backend/Frontend
+
+6. Tecnologías Utilizadas
+
+ IDE de Desarrollo: Android Studio
+
+ Plataforma Target: Android
+
+ Lenguaje: Kotlin
+
+ UI Framework: Jetpack Compose + Material Design 3
+
+ Arquitectura: MVVM (Model - ViewModel - UI - Repository)

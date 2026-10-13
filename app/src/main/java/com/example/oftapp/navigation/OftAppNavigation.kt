@@ -35,8 +35,10 @@ fun OftAppNavigation() {
 
         composable("dashboard") {
             DashboardScreen(
+                userRole = currentRole, // Pasamos el rol que guardaste en el login
                 onNavigateToRegister = { navController.navigate("registro") },
-                onNavigateToList = { navController.navigate("listado") },
+                onNavigateToUpload = { navController.navigate("carga_documentos") }, // Conectado a tu pantalla de carga
+                onNavigateToSearch = { navController.navigate("listado") }, // Conectado a tu listado/búsqueda
                 onNavigateToHistory = { navController.navigate("historial") }
             )
         }

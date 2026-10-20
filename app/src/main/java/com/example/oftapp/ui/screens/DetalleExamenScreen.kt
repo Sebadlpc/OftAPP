@@ -1,5 +1,6 @@
 package com.example.oftapp.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -21,8 +22,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.oftapp.ui.theme.AzulClinico
+import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
 import com.example.oftapp.ui.theme.RojoAlerta
+import com.example.oftapp.ui.theme.TextoOscuro
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,13 +37,13 @@ fun DetalleExamenScreen(
     onDownloadClick: () -> Unit = {}
 ) {
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = BlancoClinico,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Detalle del examen",
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = BlancoClinico,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -49,7 +53,7 @@ fun DetalleExamenScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver atrás",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = BlancoClinico
                         )
                     }
                 },
@@ -58,12 +62,12 @@ fun DetalleExamenScreen(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Más opciones",
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            tint = BlancoClinico
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = AzulClinico
                 )
             )
         }
@@ -106,8 +110,8 @@ fun DetalleExamenScreen(
                         .height(52.dp),
                     shape = RoundedCornerShape(26.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                        containerColor = AzulClinico,
+                        contentColor = BlancoClinico
                     )
                 ) {
                     Icon(
@@ -129,11 +133,11 @@ fun DetalleExamenScreen(
 
 @Composable
 private fun InfoExamenCard(examId: String) {
-    Card(
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -145,7 +149,7 @@ private fun InfoExamenCard(examId: String) {
                     text = "Campimetría",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = TextoOscuro
                 )
 
                 // Insignia de estado "Pendiente"
@@ -215,18 +219,18 @@ private fun InfoExamenCard(examId: String) {
 
 @Composable
 private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
-    Card(
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Archivo adjunto",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = TextoOscuro,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -234,6 +238,7 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Ícono PDF usando RojoAlerta del archivo Color.kt
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -255,7 +260,7 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
                         text = "campimetria_OD.pdf",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = TextoOscuro
                     )
                     Text(
                         text = "2.4 MB · PDF",
@@ -268,7 +273,7 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Download,
                         contentDescription = "Descargar",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = AzulClinico
                     )
                 }
             }
@@ -278,18 +283,18 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
 
 @Composable
 private fun ObservacionesCard() {
-    Card(
+    OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = "Observaciones clínicas",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = TextoOscuro,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
 
@@ -297,12 +302,12 @@ private fun ObservacionesCard() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        color = MaterialTheme.colorScheme.background,
+                        color = GrisAzulado.copy(alpha = 0.05f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .border(
                         width = 1.dp,
-                        color = GrisAzulado.copy(alpha = 0.2f),
+                        color = GrisAzulado.copy(alpha = 0.15f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .padding(14.dp)
@@ -310,7 +315,7 @@ private fun ObservacionesCard() {
                 Text(
                     text = "Campo visual sin escotomas significativos. Se recomienda control en 6 meses.",
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = TextoOscuro,
                     lineHeight = 20.sp
                 )
             }
@@ -334,7 +339,7 @@ private fun CampoDetalle(
             text = valor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = TextoOscuro,
             modifier = Modifier.padding(top = 2.dp)
         )
     }

@@ -1,9 +1,11 @@
 package com.example.oftapp.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -11,7 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.oftapp.ui.theme.AzulClinico
+import com.example.oftapp.ui.theme.BlancoClinico
+import com.example.oftapp.ui.theme.GrisAzulado
+import com.example.oftapp.ui.theme.TextoOscuro
 
 // Modelo de datos de ejemplo
 data class ExamenItem(
@@ -28,7 +35,6 @@ fun ListadoBusquedaScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    // Lista de prueba (reemplazar posteriormente con datos del ViewModel / Base de datos)
     val examenes = remember {
         listOf(
             ExamenItem("ID-1234", "Juan Pérez", "Tonometría", "12/10/2026"),
@@ -38,7 +44,6 @@ fun ListadoBusquedaScreen(
         )
     }
 
-    // Filtrado automático según coincidencia con paciente, tipo de examen o ID
     val examenesFiltrados = remember(searchQuery, examenes) {
         if (searchQuery.isBlank()) {
             examenes
@@ -51,55 +56,65 @@ fun ListadoBusquedaScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Campo de entrada de texto para la búsqueda
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Buscar por paciente, examen o ID...") },
-            leadingIcon = {
-                Icon(imageVector = Icons.Default.Search, contentDescription = "Buscar")
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Limpiar")
+    Scaffold(containerColor = BlancoClinico) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Buscar por paciente, examen o ID...", color = GrisAzulado) },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Search, contentDescription = "Buscar", tint = AzulClinico)
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Limpiar", tint = GrisAzulado)
+                        }
                     }
-                }
-            },
-            singleLine = true
-        )
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AzulClinico,
+                    unfocusedBorderColor = GrisAzulado.copy(alpha = 0.3f),
+                    focusedTextColor = TextoOscuro,
+                    unfocusedTextColor = TextoOscuro,
+                    cursorColor = AzulClinico
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Contenido según los resultados
-        if (examenesFiltrados.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No se encontraron exámenes",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(examenesFiltrados, key = { it.id }) { examen ->
-                    ExamenCard(
-                        examen = examen,
-                        onClick = { onExamSelected(examen.id) }
+            if (examenesFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No se encontraron exámenes",
+                        color = GrisAzulado,
+                        style = MaterialTheme.typography.bodyLarge
                     )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(examenesFiltrados, key = { it.id }) { examen ->
+                        ExamenCard(
+                            examen = examen,
+                            onClick = { onExamSelected(examen.id) }
+                        )
+                    }
                 }
             }
         }
@@ -111,11 +126,13 @@ fun ExamenCard(
     examen: ExamenItem,
     onClick: () -> Unit
 ) {
-    Card(
+    OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier
@@ -128,10 +145,13 @@ fun ExamenCard(
             ) {
                 Text(
                     text = examen.paciente,
-                    style = MaterialTheme.typography.titleMedium
+                    color = TextoOscuro,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = examen.fecha,
+                    color = GrisAzulado,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -142,12 +162,14 @@ fun ExamenCard(
             ) {
                 Text(
                     text = examen.tipoExamen,
+                    color = GrisAzulado,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
                     text = examen.id,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AzulClinico,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }

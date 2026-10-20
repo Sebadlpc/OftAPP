@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
@@ -56,18 +58,50 @@ fun ListadoBusquedaScreen(
         }
     }
 
-    Scaffold(containerColor = BlancoClinico) { paddingValues ->
+    Scaffold(
+        containerColor = BlancoClinico,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Listado de exámenes",
+                        color = BlancoClinico,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                actions = {
+                    IconButton(onClick = { /* Opciones adicionales */ }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Más opciones",
+                            tint = BlancoClinico
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AzulClinico
+                )
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            // Campo de búsqueda con colores de texto explícitos
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar por paciente, examen o ID...", color = GrisAzulado) },
+                placeholder = {
+                    Text(
+                        text = "Buscar por paciente, examen o ID...",
+                        color = GrisAzulado
+                    )
+                },
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Search, contentDescription = "Buscar", tint = AzulClinico)
                 },
@@ -80,10 +114,12 @@ fun ListadoBusquedaScreen(
                 },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = AzulClinico,
-                    unfocusedBorderColor = GrisAzulado.copy(alpha = 0.3f),
                     focusedTextColor = TextoOscuro,
                     unfocusedTextColor = TextoOscuro,
+                    focusedContainerColor = BlancoClinico,
+                    unfocusedContainerColor = BlancoClinico,
+                    focusedBorderColor = AzulClinico,
+                    unfocusedBorderColor = GrisAzulado.copy(alpha = 0.3f),
                     cursorColor = AzulClinico
                 ),
                 shape = RoundedCornerShape(12.dp)

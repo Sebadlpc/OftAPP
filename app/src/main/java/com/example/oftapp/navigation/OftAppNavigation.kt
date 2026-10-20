@@ -1,6 +1,5 @@
 package com.example.oftapp.navigation
 
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,10 +34,10 @@ fun OftAppNavigation() {
 
         composable("dashboard") {
             DashboardScreen(
-                userRole = currentRole, // Pasamos el rol que guardaste en el login
+                userRole = currentRole,
                 onNavigateToRegister = { navController.navigate("registro") },
-                onNavigateToUpload = { navController.navigate("carga_documentos") }, // Conectado a tu pantalla de carga
-                onNavigateToSearch = { navController.navigate("listado") }, // Conectado a tu listado/búsqueda
+                onNavigateToUpload = { navController.navigate("carga_documentos") },
+                onNavigateToSearch = { navController.navigate("listado") },
                 onNavigateToHistory = { navController.navigate("historial") }
             )
         }
@@ -75,8 +74,19 @@ fun OftAppNavigation() {
 
         composable("historial") {
             HistorialClinicoScreen(
-                onSelectHistoricExam = { examId ->
+                onSelectExam = { examId ->
                     navController.navigate("detalle/$examId")
+                },
+                onNavigateToHome = {
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = true }
+                    }
+                },
+                onNavigateToSearch = {
+                    navController.navigate("listado")
+                },
+                onNavigateToProfile = {
+                    // Acción para el perfil si existe esa pantalla
                 }
             )
         }

@@ -2,6 +2,7 @@ package com.example.oftapp.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,19 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.border
-
-
-// Colores de la App
-val AzulClinico = Color(0xFF006689)
-val GrisAzulado = Color(0xFF4F616E)
-val BlancoClinico = Color(0xFFF8FDFF)
-val TextoOscuro = Color(0xFF191C1E)
-val VerdeSalud = Color(0xFF006E36)
-val RojoAlerta = Color(0xFFB02F00)
-val BordeGris = Color(0xFFC0C8CD)
-val FondoTarjeta = Color(0xFFC3E8FF).copy(alpha = 0.4f)
-val FondoObservaciones = Color(0xFFEBF2F6)
+import com.example.oftapp.ui.theme.AzulClinico
+import com.example.oftapp.ui.theme.BlancoClinico
+import com.example.oftapp.ui.theme.GrisAzulado
+import com.example.oftapp.ui.theme.RojoAlerta
+import com.example.oftapp.ui.theme.TextoOscuro
+import com.example.oftapp.ui.theme.VerdeSalud
 
 // Modelos de prueba para que la pantalla compile
 data class PatientMock(val id: String, val name: String, val rut: String, val age: Int, val gender: String, val diagnosis: String)
@@ -69,30 +63,63 @@ fun HistorialClinicoScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Historial Clínico", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp)
-                        Text("Línea de Tiempo del Paciente", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                        Text("Historial Clínico", fontWeight = FontWeight.Bold, color = BlancoClinico, fontSize = 18.sp)
+                        Text("Línea de Tiempo del Paciente", color = BlancoClinico.copy(alpha = 0.8f), fontSize = 12.sp)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = { /* Menú lateral */ }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú", tint = Color.White)
+                        Icon(Icons.Default.Menu, contentDescription = "Menú", tint = BlancoClinico)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulClinico)
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-                NavigationBarItem(selected = false, onClick = onNavigateToHome, icon = { Icon(Icons.Outlined.Home, null) }, label = { Text("Inicio") })
-                NavigationBarItem(selected = false, onClick = onNavigateToSearch, icon = { Icon(Icons.Outlined.Search, null) }, label = { Text("Búsqueda") })
+            NavigationBar(containerColor = BlancoClinico, tonalElevation = 8.dp) {
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToHome,
+                    icon = { Icon(Icons.Outlined.Home, null) },
+                    label = { Text("Inicio") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToSearch,
+                    icon = { Icon(Icons.Outlined.Search, null) },
+                    label = { Text("Búsqueda") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
                 NavigationBarItem(
                     selected = true,
                     onClick = { },
                     icon = { Icon(Icons.Outlined.History, null) },
                     label = { Text("Historial") },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = AzulClinico, selectedTextColor = AzulClinico, indicatorColor = Color(0xFFDDF2F9))
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = AzulClinico,
+                        selectedTextColor = AzulClinico,
+                        indicatorColor = AzulClinico.copy(alpha = 0.15f),
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
                 )
-                NavigationBarItem(selected = false, onClick = onNavigateToProfile, icon = { Icon(Icons.Outlined.Person, null) }, label = { Text("Perfil") })
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToProfile,
+                    icon = { Icon(Icons.Outlined.Person, null) },
+                    label = { Text("Perfil") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
             }
         }
     ) { paddingValues ->
@@ -132,7 +159,7 @@ fun HistorialClinicoScreen(
                         ExposedDropdownMenu(expanded = expandedDropdown, onDismissRequest = { expandedDropdown = false }) {
                             patients.forEach { patient ->
                                 DropdownMenuItem(
-                                    text = { Text("${patient.name} (${patient.rut})") },
+                                    text = { Text("${patient.name} (${patient.rut})", color = TextoOscuro) },
                                     onClick = {
                                         selectedPatient = patient
                                         expandedDropdown = false
@@ -148,7 +175,7 @@ fun HistorialClinicoScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = FondoTarjeta),
+                    colors = CardDefaults.cardColors(containerColor = AzulClinico.copy(alpha = 0.08f)),
                     border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.25f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
@@ -163,7 +190,7 @@ fun HistorialClinicoScreen(
                                     modifier = Modifier.size(48.dp).clip(CircleShape).background(AzulClinico),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(selectedPatient.name.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                    Text(selectedPatient.name.take(1), color = BlancoClinico, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
@@ -174,7 +201,7 @@ fun HistorialClinicoScreen(
                             Box(
                                 modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(AzulClinico).padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text("${exams.size} exámenes", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("${exams.size} exámenes", color = BlancoClinico, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -216,7 +243,7 @@ fun HistorialClinicoScreen(
 fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
     val isStatusValid = exam.status == "Validado"
     val statusColor = if (isStatusValid) VerdeSalud else RojoAlerta
-    val statusBgColor = if (isStatusValid) Color(0xFF9EF5B4).copy(alpha = 0.6f) else Color(0xFFFFDAD3).copy(alpha = 0.6f)
+    val statusBgColor = if (isStatusValid) VerdeSalud.copy(alpha = 0.12f) else RojoAlerta.copy(alpha = 0.12f)
     val statusIcon = if (isStatusValid) Icons.Default.CheckCircle else Icons.Default.ErrorOutline
 
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -241,7 +268,7 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                 .padding(bottom = 16.dp)
                 .clickable { onClick() },
             colors = CardDefaults.cardColors(containerColor = BlancoClinico),
-            border = BorderStroke(1.dp, BordeGris.copy(alpha = 0.6f)),
+            border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
@@ -288,7 +315,7 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .background(FondoObservaciones)
+                            .background(GrisAzulado.copy(alpha = 0.1f))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(exam.eye, color = AzulClinico, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -302,14 +329,14 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(FondoObservaciones.copy(alpha = 0.6f))
+                        .background(GrisAzulado.copy(alpha = 0.08f))
                         .padding(8.dp)
                 ) {
                     Text("\"${exam.observations}\"", fontSize = 12.sp, color = TextoOscuro, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
-                Divider(color = BordeGris.copy(alpha = 0.3f))
+                Divider(color = GrisAzulado.copy(alpha = 0.2f))
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Fila Inferior: Acción

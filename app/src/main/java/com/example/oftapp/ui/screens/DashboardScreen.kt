@@ -23,13 +23,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// Colores basados en tu diseño
-val OftPrimary = Color(0xFF00647C) // Azul petróleo/Teal
-val OftBackground = Color(0xFFFFFFFF) // Blanco puro
-val OftBorder = Color(0xFFE0E0E0) // Gris claro para bordes
-val OftTextDark = Color(0xFF1E1E1E) // Texto principal
-val OftTextMuted = Color(0xFF5C5C5C) // Texto secundario
+import com.example.oftapp.ui.theme.AzulClinico
+import com.example.oftapp.ui.theme.BlancoClinico
+import com.example.oftapp.ui.theme.GrisAzulado
+import com.example.oftapp.ui.theme.RojoAlerta
+import com.example.oftapp.ui.theme.TextoOscuro
+import com.example.oftapp.ui.theme.VerdeSalud
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,10 +40,10 @@ fun DashboardScreen(
     onNavigateToHistory: () -> Unit = {}
 ) {
     Scaffold(
-        containerColor = OftBackground, // Forzar fondo blanco
+        containerColor = BlancoClinico,
         topBar = {
             TopAppBar(
-                title = { Text("OftApp", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("OftApp", fontWeight = FontWeight.Bold, color = BlancoClinico) },
                 actions = {
                     Box(
                         modifier = Modifier
@@ -54,7 +53,7 @@ fun DashboardScreen(
                             .clickable { /* Acción de notificaciones */ },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.NotificationsNone, contentDescription = "Notificaciones", tint = Color.White)
+                        Icon(Icons.Default.NotificationsNone, contentDescription = "Notificaciones", tint = BlancoClinico)
                         // Punto de alerta
                         Box(
                             modifier = Modifier
@@ -62,20 +61,20 @@ fun DashboardScreen(
                                 .padding(6.dp)
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFFCA5A5))
+                                .background(RojoAlerta)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = OftPrimary
+                    containerColor = AzulClinico
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNavigateToRegister,
-                containerColor = OftPrimary,
-                contentColor = Color.White,
+                containerColor = AzulClinico,
+                contentColor = BlancoClinico,
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar")
@@ -83,7 +82,7 @@ fun DashboardScreen(
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = BlancoClinico,
                 tonalElevation = 8.dp
             ) {
                 NavigationBarItem(
@@ -92,30 +91,42 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = OftPrimary,
-                        selectedTextColor = OftPrimary,
-                        indicatorColor = Color(0xFFDDF2F9),
-                        unselectedIconColor = OftTextMuted,
-                        unselectedTextColor = OftTextMuted
+                        selectedIconColor = AzulClinico,
+                        selectedTextColor = AzulClinico,
+                        indicatorColor = AzulClinico.copy(alpha = 0.15f),
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
                     )
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToSearch,
                     icon = { Icon(Icons.Outlined.Search, contentDescription = "Búsqueda") },
-                    label = { Text("Búsqueda") }
+                    label = { Text("Búsqueda") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToHistory,
                     icon = { Icon(Icons.Outlined.History, contentDescription = "Historial") },
-                    label = { Text("Historial") }
+                    label = { Text("Historial") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = { },
                     icon = { Icon(Icons.Outlined.Person, contentDescription = "Perfil") },
-                    label = { Text("Perfil") }
+                    label = { Text("Perfil") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
                 )
             }
         }
@@ -134,22 +145,22 @@ fun DashboardScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = OftPrimary,
-                        contentColor = Color.White
+                        containerColor = AzulClinico,
+                        contentColor = BlancoClinico
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text("Bienvenida,", fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
                         Text("Dra. Carla Ruiz", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Text("$userRole · Sede Norte", fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp), color = Color.White.copy(alpha = 0.8f))
+                        Text("$userRole · Sede Norte", fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp), color = BlancoClinico.copy(alpha = 0.8f))
                     }
                 }
             }
 
             // 2. Acciones Rápidas
             item {
-                Text("Acciones rápidas", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = OftPrimary, modifier = Modifier.padding(bottom = 12.dp))
+                Text("Acciones rápidas", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = AzulClinico, modifier = Modifier.padding(bottom = 12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -163,14 +174,14 @@ fun DashboardScreen(
 
             // 3. Resumen de Exámenes
             item {
-                Text("Resumen de exámenes", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = OftPrimary, modifier = Modifier.padding(bottom = 12.dp))
+                Text("Resumen de exámenes", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = AzulClinico, modifier = Modifier.padding(bottom = 12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    SummaryTile(Modifier.weight(1f), Icons.Default.Schedule, 1, "Pendientes", Color(0xFF5A7184), Color(0xFFE1E8EE))
-                    SummaryTile(Modifier.weight(1f), Icons.Default.CheckCircleOutline, 2, "Validados", Color(0xFF1B8038), Color(0xFFA8E5B3))
-                    SummaryTile(Modifier.weight(1f), Icons.Default.WarningAmber, 1, "Alertas", Color(0xFFD32F2F), Color(0xFFF9D6D1))
+                    SummaryTile(Modifier.weight(1f), Icons.Default.Schedule, 1, "Pendientes", GrisAzulado, GrisAzulado.copy(alpha = 0.12f))
+                    SummaryTile(Modifier.weight(1f), Icons.Default.CheckCircleOutline, 2, "Validados", VerdeSalud, VerdeSalud.copy(alpha = 0.12f))
+                    SummaryTile(Modifier.weight(1f), Icons.Default.WarningAmber, 1, "Alertas", RojoAlerta, RojoAlerta.copy(alpha = 0.12f))
                 }
             }
 
@@ -181,11 +192,11 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Recientes", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = OftPrimary)
+                    Text("Recientes", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = AzulClinico)
                     Text(
                         "Ver todos",
                         fontSize = 13.sp,
-                        color = OftPrimary,
+                        color = AzulClinico,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.clickable { onNavigateToSearch() }
                     )
@@ -193,9 +204,8 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Examen Dummy 1
-                RecentExamCard("Campimetría", "PAC-04821 · OD · 18 Sep 2026", "Validado", Color(0xFF1B8038), Color(0xFFA8E5B3))
+                RecentExamCard("Campimetría", "PAC-04821 · OD · 18 Sep 2026", "Validado", VerdeSalud, VerdeSalud.copy(alpha = 0.12f))
                 Spacer(modifier = Modifier.height(8.dp))
-                // Puedes agregar más tarjetas aquí
             }
 
             item { Spacer(modifier = Modifier.height(80.dp)) } // Espacio extra para el FAB
@@ -207,8 +217,8 @@ fun DashboardScreen(
 fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
     OutlinedCard(
         onClick = onClick,
-        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, OftBorder),
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.width(78.dp)
     ) {
@@ -222,13 +232,13 @@ fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFDDF2F9)),
+                    .background(AzulClinico.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = label, tint = OftPrimary, modifier = Modifier.size(24.dp))
+                Icon(icon, contentDescription = label, tint = AzulClinico, modifier = Modifier.size(24.dp))
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = OftTextDark)
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextoOscuro)
         }
     }
 }
@@ -237,8 +247,8 @@ fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
 fun SummaryTile(modifier: Modifier, icon: ImageVector, value: Int, label: String, iconColor: Color, bgColor: Color) {
     OutlinedCard(
         modifier = modifier,
-        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, OftBorder),
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -252,8 +262,8 @@ fun SummaryTile(modifier: Modifier, icon: ImageVector, value: Int, label: String
                 Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Text(value.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = OftTextDark)
-            Text(label, fontSize = 12.sp, color = OftTextMuted)
+            Text(value.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = TextoOscuro)
+            Text(label, fontSize = 12.sp, color = GrisAzulado)
         }
     }
 }
@@ -262,8 +272,8 @@ fun SummaryTile(modifier: Modifier, icon: ImageVector, value: Int, label: String
 fun RecentExamCard(type: String, details: String, status: String, statusColor: Color, statusBg: Color) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, OftBorder),
+        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -274,9 +284,9 @@ fun RecentExamCard(type: String, details: String, status: String, statusColor: C
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(type, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = OftTextDark)
+                Text(type, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextoOscuro)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(details, fontSize = 13.sp, color = OftTextMuted)
+                Text(details, fontSize = 13.sp, color = GrisAzulado)
             }
             Row(
                 modifier = Modifier

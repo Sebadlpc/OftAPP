@@ -20,6 +20,7 @@ import com.example.oftapp.ui.screens.DetalleExamenScreen
 import com.example.oftapp.ui.screens.HistorialClinicoScreen
 import com.example.oftapp.ui.screens.ListadoBusquedaScreen
 import com.example.oftapp.ui.screens.LoginScreen
+import com.example.oftapp.ui.screens.PerfilScreen
 import com.example.oftapp.ui.screens.RegistroAtencionScreen
 import com.example.oftapp.ui.viewmodel.AppViewModelFactory
 import com.example.oftapp.ui.viewmodel.DashboardViewModel
@@ -33,8 +34,8 @@ import com.example.oftapp.ui.viewmodel.RegistroAtencionViewModel
  * Grafo central de navegación de OftAPP.
  *
  * Configura las rutas del sistema, la instanciación de dependencias mediante [AppViewModelFactory],
- * la inyección de ViewModels reactivos con Room ([AppDatabase] y [OftAppRepositoryImpl])
- * y la transferencia segura de argumentos de navegación entre pantallas.
+ * la inyección de ViewModels reactivos con Room ([AppDatabase] y [OftAppRepositoryImpl]),
+ * la transferencia de parámetros de navegación (como examId y patientName) y la pestaña de Perfil.
  */
 @Composable
 fun OftAppNavigation() {
@@ -71,9 +72,9 @@ fun OftAppNavigation() {
                 viewModel = dashboardViewModel,
                 userRole = currentRole,
                 onNavigateToRegister = { navController.navigate("registro") },
-                onNavigateToUpload = { navController.navigate("carga_documentos") },
                 onNavigateToSearch = { navController.navigate("listado") },
                 onNavigateToHistory = { navController.navigate("historial") },
+                onNavigateToProfile = { navController.navigate("perfil") },
                 onNavigateToDetail = { examId -> navController.navigate("detalle/$examId") }
             )
         }
@@ -84,15 +85,41 @@ fun OftAppNavigation() {
             RegistroAtencionScreen(
                 viewModel = registroViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNextToDocumentUpload = { navController.navigate("carga_documentos") }
+                onNavigateToUpload = { examId ->
+                    navController.navigate("carga_documentos/$examId")
+                }
             )
         }
 
-        // 4. Pantalla de Carga de Documentos Adjuntos
+        // 4. Pantalla de Carga de Documentos con examId asociado
+        composable(
+            route = "carga_documentos/{examId}",
+            arguments = listOf(
+                navArgument("examId") {
+                    type = NavType.StringType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val examId = backStackEntry.arguments?.getString("examId") ?: ""
+            CargaDocumentosScreen(
+                examId = examId,
+                onFinishUpload = {
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = false }
+                    }
+                }
+            )
+        }
+
+        // 4b. Pantalla de Carga de Documentos general (fallback)
         composable("carga_documentos") {
             CargaDocumentosScreen(
+                examId = null,
                 onFinishUpload = {
-                    navController.popBackStack("dashboard", inclusive = false)
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = false }
+                    }
                 }
             )
         }
@@ -159,7 +186,34 @@ fun OftAppNavigation() {
                 onNavigateToSearch = {
                     navController.navigate("listado")
                 },
-                onNavigateToProfile = { /* Perfil */ }
+                onNavigateToProfile = {
+                    navController.navigate("perfil")
+                }
+            )
+        }
+
+        // 8. Pantalla de Perfil de Usuario y Cierre de Sesión
+        composable("perfil") {
+            val loginViewModel: LoginViewModel = viewModel(factory = factory)
+            PerfilScreen(
+                userRole = currentRole,
+                onLogout = {
+                    loginViewModel.logout()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = false }
+                    }
+                },
+                onNavigateToSearch = {
+                    navController.navigate("listado")
+                },
+                onNavigateToHistory = {
+                    navController.navigate("historial")
+                }
             )
         }
     }

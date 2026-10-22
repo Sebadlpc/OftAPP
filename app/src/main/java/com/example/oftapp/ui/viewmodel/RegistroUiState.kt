@@ -14,6 +14,7 @@ import android.net.Uri
  * @property fileName Nombre del archivo adjunto seleccionado.
  * @property isSaving Indicador de proceso de guardado en ejecución.
  * @property isSuccess Indicador de guardado exitoso.
+ * @property createdExamId Identificador del examen recién creado.
  * @property errorMessage Mensaje de error en caso de fallo o validación.
  */
 data class RegistroUiState(
@@ -26,5 +27,6 @@ data class RegistroUiState(
     val fileName: String? = null,
     val isSaving: Boolean = false,
     val isSuccess: Boolean = false,
+    val createdExamId: String? = null,
     val errorMessage: String? = null
 )

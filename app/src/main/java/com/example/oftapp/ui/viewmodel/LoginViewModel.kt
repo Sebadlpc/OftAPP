@@ -12,8 +12,7 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel para la pantalla de inicio de sesión.
  *
- * Gestiona la selección del rol del usuario, las credenciales ingresadas y la lógica
- * de autenticación ficticia del sistema.
+ * Valida credenciales según el rol predeterminado y gestiona el estado de autenticación.
  */
 class LoginViewModel(
     private val repository: OftAppRepository? = null
@@ -31,14 +30,20 @@ class LoginViewModel(
     }
 
     /**
-     * Realiza el proceso de inicio de sesión ficticio validando las credenciales.
+     * Valida credenciales según el usuario ingresado:
+     * - "Tecnologo" / "1234" -> Rol "Tecnólogo Médico"
+     * - "Medico" / "1234"    -> Rol "Médico Oftalmólogo"
+     * - "Admin" / "1234"     -> Rol "Personal Administrativo"
+     * - "Paciente" / "1234"  -> Rol "Paciente"
      */
     fun login(password: String) {
-        val currentEmail = _uiState.value.email
-        if (currentEmail.isBlank() || password.isBlank()) {
+        val currentEmail = _uiState.value.email.trim()
+        val currentPassword = password.trim()
+
+        if (currentEmail.isBlank() || currentPassword.isBlank()) {
             _uiState.update {
                 it.copy(
-                    errorMessage = "Por favor, ingrese usuario/correo y contraseña",
+                    errorMessage = "Por favor, ingrese usuario y contraseña",
                     isAuthenticated = false
                 )
             }
@@ -47,13 +52,34 @@ class LoginViewModel(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            // Simulación de autenticación exitosa
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isAuthenticated = true,
-                    errorMessage = null
-                )
+
+            val assignedRole = when {
+                currentEmail.equals("Tecnologo", ignoreCase = true) ||
+                        currentEmail.equals("Tecnólogo", ignoreCase = true) -> "Tecnólogo Médico"
+                currentEmail.equals("Medico", ignoreCase = true) ||
+                        currentEmail.equals("Médico", ignoreCase = true) -> "Médico Oftalmólogo"
+                currentEmail.equals("Admin", ignoreCase = true) -> "Personal Administrativo"
+                currentEmail.equals("Paciente", ignoreCase = true) -> "Paciente"
+                else -> null
+            }
+
+            if (assignedRole != null && currentPassword == "1234") {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isAuthenticated = true,
+                        selectedRole = assignedRole,
+                        errorMessage = null
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isAuthenticated = false,
+                        errorMessage = "Credenciales incorrectas. Verifique usuario y contraseña."
+                    )
+                }
             }
         }
     }

@@ -72,6 +72,7 @@ class ViewModelsTest {
 
         val state = viewModel.uiState.value
         assertTrue(state.isSuccess)
+        assertNotNull(state.createdExamId)
         assertNull(state.errorMessage)
         assertEquals(1, fakeRepository.consultasFlow.value.size)
         assertEquals(1, fakeRepository.examsFlow.value.size)
@@ -83,12 +84,12 @@ class ViewModelsTest {
         fakeRepository.seedDatabaseIfNeeded()
         val viewModel = ListadoBusquedaViewModel(fakeRepository)
 
-        viewModel.onSearchQueryChange("María")
+        viewModel.onSearchQueryChanged("María")
         val state = viewModel.uiState.first { it.searchQuery == "María" }
         assertEquals(1, state.exams.size)
         assertEquals("María González", state.exams.first().patientName)
 
-        viewModel.onSearchQueryChange("")
+        viewModel.onSearchQueryChanged("")
         viewModel.onFilterSelect("Tonometría")
         val filterState = viewModel.uiState.first { it.selectedFilter == "Tonometría" }
         assertEquals(1, filterState.exams.size)
@@ -125,17 +126,31 @@ class ViewModelsTest {
     fun loginViewModel_handlesAuthenticationFlow() = runBlocking {
         val viewModel = LoginViewModel(fakeRepository)
 
-        viewModel.onEmailChange("doctor@oftapp.cl")
-        viewModel.onRoleSelect("Médico Oftalmólogo")
+        // Intento con credenciales inválidas
+        viewModel.onEmailChange("UsuarioDesconocido")
+        viewModel.login("0000")
+        assertFalse(viewModel.uiState.value.isAuthenticated)
+        assertNotNull(viewModel.uiState.value.errorMessage)
 
-        viewModel.login("123456")
+        // Autenticación exitosa como Médico con credenciales ("Medico" / "1234")
+        viewModel.onEmailChange("Medico")
+        viewModel.login("1234")
         val state = viewModel.uiState.value
         assertTrue(state.isAuthenticated)
-        assertEquals("doctor@oftapp.cl", state.email)
+        assertEquals("Medico", state.email)
         assertEquals("Médico Oftalmólogo", state.selectedRole)
+        assertNull(state.errorMessage)
 
+        // Logout
         viewModel.logout()
         assertFalse(viewModel.uiState.value.isAuthenticated)
+
+        // Autenticación como Tecnólogo con credenciales ("Tecnologo" / "1234")
+        viewModel.onEmailChange("Tecnologo")
+        viewModel.login("1234")
+        val stateTecnologo = viewModel.uiState.value
+        assertTrue(stateTecnologo.isAuthenticated)
+        assertEquals("Tecnólogo Médico", stateTecnologo.selectedRole)
     }
 
     // --- Fake Repository ---

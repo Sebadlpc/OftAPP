@@ -214,10 +214,11 @@ fun HistorialClinicoScreen(
                 }
             }
 
-            // 2. Tarjeta Resumen del Paciente
+            // 2. Tarjeta Resumen Responsiva con Modifier.fillMaxWidth()
             item {
                 val nombrePaciente = uiState.selectedPatient.ifBlank { "Paciente Seleccionado" }
                 val inicial = nombrePaciente.take(1).uppercase()
+                val totalExams = uiState.patientExams.size
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -225,53 +226,67 @@ fun HistorialClinicoScreen(
                     border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.25f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        // Fila superior adaptativa
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(AzulClinico),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = inicial,
-                                        color = BlancoClinico,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 20.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = nombrePaciente,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = TextoOscuro
-                                    )
-                                    Text(
-                                        text = "Ficha clínica digital vinculada",
-                                        fontSize = 12.sp,
-                                        color = GrisAzulado
-                                    )
-                                }
-                            }
+                            // Avatar del paciente
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(AzulClinico)
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(AzulClinico),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "${uiState.patientExams.size} exámenes",
+                                    text = inicial,
                                     color = BlancoClinico,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Nombre y subtítulo responsivos con weight
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = nombrePaciente,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = TextoOscuro,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Ficha clínica vinculada",
+                                    fontSize = 12.sp,
+                                    color = GrisAzulado
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Badge de conteo sin cortes
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = AzulClinico,
+                                modifier = Modifier.wrapContentWidth()
+                            ) {
+                                Text(
+                                    text = if (totalExams == 1) "1 examen" else "$totalExams exámenes",
+                                    color = BlancoClinico,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                 )
                             }
                         }
@@ -281,19 +296,22 @@ fun HistorialClinicoScreen(
                             color = AzulClinico.copy(alpha = 0.15f)
                         )
 
-                        Text(
-                            text = "Seguimiento Oftalmológico:",
-                            color = AzulClinico,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = "Historial evolutivo cronológico de exámenes y procedimientos registrados.",
-                            color = TextoOscuro,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
+                        // Sección de información clínica base
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Seguimiento Oftalmológico:",
+                                color = AzulClinico,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Historial evolutivo cronológico de exámenes y procedimientos registrados.",
+                                color = TextoOscuro,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 }
             }
@@ -305,7 +323,10 @@ fun HistorialClinicoScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
@@ -314,13 +335,17 @@ fun HistorialClinicoScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Evolución Cronológica de Exámenes",
+                            text = "Evolución Cronológica",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = TextoOscuro
                         )
                     }
-                    Text("Más reciente primero", fontSize = 11.sp, color = GrisAzulado)
+                    Text(
+                        text = "Recientes primero",
+                        fontSize = 11.sp,
+                        color = GrisAzulado
+                    )
                 }
             }
 

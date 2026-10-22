@@ -122,6 +122,7 @@ class RegistroAtencionViewModel(
                     it.copy(
                         isSaving = false,
                         isSuccess = true,
+                        createdExamId = exam.id,
                         errorMessage = null
                     )
                 }

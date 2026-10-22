@@ -9,9 +9,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.automirrored.filled.NoteAdd
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CheckCircleOutline
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -33,7 +34,6 @@ import com.example.oftapp.data.local.entity.ExamEntity
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
-import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
 import com.example.oftapp.ui.viewmodel.DashboardViewModel
@@ -46,9 +46,9 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = viewModel(),
     userRole: String = "Médico",
     onNavigateToRegister: () -> Unit = {},
-    onNavigateToUpload: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {},
     onNavigateToDetail: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -58,31 +58,6 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("OftApp", fontWeight = FontWeight.Bold, color = BlancoClinico) },
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable { /* Acción de notificaciones */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsNone,
-                            contentDescription = "Notificaciones",
-                            tint = BlancoClinico
-                        )
-                        // Punto de alerta
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(6.dp)
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(RojoAlerta)
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AzulClinico
                 )
@@ -138,7 +113,7 @@ fun DashboardScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
+                    onClick = onNavigateToProfile,
                     icon = { Icon(Icons.Outlined.Person, contentDescription = "Perfil") },
                     label = { Text("Perfil") },
                     colors = NavigationBarItemDefaults.colors(
@@ -185,27 +160,7 @@ fun DashboardScreen(
                 }
             }
 
-            // 2. Acciones Rápidas
-            item {
-                Text(
-                    text = "Acciones rápidas",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = AzulClinico,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    QuickActionButton("Registrar", Icons.AutoMirrored.Filled.NoteAdd, onNavigateToRegister)
-                    QuickActionButton("Subir", Icons.Default.Upload, onNavigateToUpload)
-                    QuickActionButton("Buscar", Icons.Default.Search, onNavigateToSearch)
-                    QuickActionButton("Historial", Icons.AutoMirrored.Filled.Assignment, onNavigateToHistory)
-                }
-            }
-
-            // 3. Resumen de Métricas (Totales, Pendientes, Validados)
+            // 2. Resumen de Métricas (Totales, Pendientes, Validados)
             item {
                 Text(
                     text = "Resumen de exámenes",
@@ -245,7 +200,7 @@ fun DashboardScreen(
                 }
             }
 
-            // 4. Lista de Exámenes Recientes
+            // 3. Lista de Exámenes Recientes
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -312,41 +267,6 @@ fun DashboardScreen(
             }
 
             item { Spacer(modifier = Modifier.height(80.dp)) } // Espacio para el FAB
-        }
-    }
-}
-
-@Composable
-fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
-    OutlinedCard(
-        onClick = onClick,
-        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
-        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.width(78.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(vertical = 16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(AzulClinico.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = AzulClinico,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextoOscuro)
         }
     }
 }

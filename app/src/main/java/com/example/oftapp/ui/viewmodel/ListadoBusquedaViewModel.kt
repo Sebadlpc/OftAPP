@@ -73,6 +73,10 @@ class ListadoBusquedaViewModel(
         _searchQuery.value = query
     }
 
+    fun onSearchQueryChanged(query: String) {
+        onSearchQueryChange(query)
+    }
+
     fun onFilterSelect(filter: String) {
         _selectedFilter.value = filter
     }

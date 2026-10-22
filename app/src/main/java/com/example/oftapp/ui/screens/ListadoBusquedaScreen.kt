@@ -14,9 +14,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +43,9 @@ fun ListadoBusquedaScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filterOptions = listOf("Todos", "Pendientes", "Validados")
+
+    // Estado local síncrono para eliminar el bug de duplicación de letras y salto de cursor
+    var localQuery by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
         containerColor = BlancoClinico,
@@ -87,10 +89,13 @@ fun ListadoBusquedaScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Campo de búsqueda reactivo con OutlinedTextField
+            // Campo de búsqueda con estado local síncrono que delega a onSearchQueryChanged
             OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = { viewModel.onSearchQueryChange(it) },
+                value = localQuery,
+                onValueChange = { newQuery ->
+                    localQuery = newQuery
+                    viewModel.onSearchQueryChanged(newQuery)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
@@ -106,8 +111,11 @@ fun ListadoBusquedaScreen(
                     )
                 },
                 trailingIcon = {
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                    if (localQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            localQuery = ""
+                            viewModel.onSearchQueryChanged("")
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Limpiar búsqueda",

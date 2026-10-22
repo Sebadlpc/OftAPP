@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +39,7 @@ import kotlinx.coroutines.delay
 fun RegistroAtencionScreen(
     viewModel: RegistroAtencionViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
-    onNextToDocumentUpload: () -> Unit = {}
+    onNavigateToUpload: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -51,7 +50,7 @@ fun RegistroAtencionScreen(
     val tiposExamen = listOf("Campimetría", "Tonometría", "OCT Retinal", "Fundoscopía")
     val ojosDisponibles = listOf("OD (derecho)", "OI (izquierdo)", "Ambos Ojos (AO)")
 
-    // Selector de archivo local
+    // Selector de archivo local opcional en el formulario
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -67,13 +66,14 @@ fun RegistroAtencionScreen(
         }
     }
 
-    // Manejo de éxito con Snackbar y retorno
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
+    // Al registrar exitosamente, navegar automáticamente a la pantalla de carga de documentos con el ID del examen
+    LaunchedEffect(uiState.isSuccess, uiState.createdExamId) {
+        if (uiState.isSuccess && uiState.createdExamId != null) {
+            val examId = uiState.createdExamId!!
             snackbarHostState.showSnackbar("Examen registrado exitosamente")
-            delay(400)
+            delay(300)
             viewModel.resetState()
-            onNavigateBack()
+            onNavigateToUpload(examId)
         }
     }
 
@@ -267,7 +267,7 @@ fun RegistroAtencionScreen(
                 )
             )
 
-            // 6. Selector de Archivo Adjunto
+            // 6. Selector de Archivo Adjunto (Opcional en esta pantalla)
             Text("Documento o informe anexo", color = TextoOscuro, fontWeight = FontWeight.Bold)
             if (uiState.fileUri != null) {
                 Card(
@@ -349,7 +349,7 @@ fun RegistroAtencionScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 7. Botón de Registro de Atención con Indicador de Carga
+            // 7. Botón de Guardar y Registrar
             Button(
                 onClick = { viewModel.registrarAtencion() },
                 enabled = !uiState.isSaving,
@@ -370,24 +370,12 @@ fun RegistroAtencionScreen(
                     )
                 } else {
                     Text(
-                        text = "Guardar y registrar examen",
+                        text = "Guardar y Registrar",
                         color = BlancoClinico,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
-            }
-
-            // Opción alternativa: avanzar a Carga de Documentos independiente si se desea
-            TextButton(
-                onClick = onNextToDocumentUpload,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = "Ir a pantalla de carga de documentos avanzada",
-                    color = AzulClinico,
-                    fontSize = 13.sp
-                )
             }
         }
     }

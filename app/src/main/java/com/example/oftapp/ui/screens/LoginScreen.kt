@@ -1,8 +1,9 @@
 package com.example.oftapp.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
@@ -16,10 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.oftapp.ui.theme.*
-import com.example.oftapp.ui.viewmodel.LoginUiState
 import com.example.oftapp.ui.viewmodel.LoginViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
@@ -27,14 +26,7 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var password by remember { mutableStateOf("") }
-    var expandedRoles by remember { mutableStateOf(false) }
-
-    val roles = listOf(
-        "Tecnólogo Médico",
-        "Médico Oftalmólogo",
-        "Personal Administrativo",
-        "Paciente"
-    )
+    val scrollState = rememberScrollState()
 
     // Al autenticarse correctamente, navegar hacia la ruta Dashboard
     LaunchedEffect(uiState.isAuthenticated) {
@@ -50,6 +42,8 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
+                .verticalScroll(scrollState)
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -76,61 +70,13 @@ fun LoginScreen(
                 color = GrisAzulado
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Selector de Rol Ficticio (ExposedDropdownMenuBox)
-            ExposedDropdownMenuBox(
-                expanded = expandedRoles,
-                onExpandedChange = { expandedRoles = !expandedRoles },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = uiState.selectedRole,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Rol de Usuario") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRoles)
-                    },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AzulClinico,
-                        unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
-                        focusedLabelColor = AzulClinico,
-                        unfocusedContainerColor = Color.White,
-                        focusedContainerColor = Color.White,
-                        focusedTextColor = TextoOscuro,
-                        unfocusedTextColor = TextoOscuro
-                    )
-                )
-
-                ExposedDropdownMenu(
-                    expanded = expandedRoles,
-                    onDismissRequest = { expandedRoles = false },
-                    modifier = Modifier.background(Color.White)
-                ) {
-                    roles.forEach { roleOption ->
-                        DropdownMenuItem(
-                            text = { Text(roleOption, color = TextoOscuro) },
-                            onClick = {
-                                viewModel.onRoleSelect(roleOption)
-                                expandedRoles = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Campo de Usuario / Correo
             OutlinedTextField(
                 value = uiState.email,
                 onValueChange = { viewModel.onEmailChange(it) },
-                label = { Text("Usuario / Correo") },
+                label = { Text("Usuario (Tecnologo / Medico / Admin / Paciente)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -145,13 +91,13 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Campo de Contraseña
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Contraseña") },
+                label = { Text("Contraseña (1234)") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),

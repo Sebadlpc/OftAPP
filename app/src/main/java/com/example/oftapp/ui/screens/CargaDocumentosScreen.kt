@@ -12,7 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.InsertDriveFile
@@ -36,6 +36,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CargaDocumentosScreen(
+    examId: String? = null,
     onFinishUpload: () -> Unit
 ) {
     // Controlador nativo para volver atrás sin romper OftAppNavigation
@@ -47,13 +48,12 @@ fun CargaDocumentosScreen(
     var fileName by remember { mutableStateOf("") }
     var fileSize by remember { mutableStateOf("") }
 
-    // Abre la galería / explorador de archivos real del teléfono
+    // Abre el explorador de archivos real del teléfono
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         fileUri = uri
         if (uri != null) {
-            // Extraemos el nombre y peso real del archivo desde el teléfono
             context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
@@ -76,16 +76,26 @@ fun CargaDocumentosScreen(
         }
     }
 
-    // Forzamos el tema claro para evitar letras blancas invisibles
     OftAPPTheme(darkTheme = false) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Adjuntar documento", color = BlancoClinico) },
+                    title = {
+                        Column {
+                            Text("Adjuntar documento", color = BlancoClinico, fontWeight = FontWeight.Bold)
+                            if (!examId.isNullOrBlank()) {
+                                Text(
+                                    text = "Asociado a examen: $examId",
+                                    color = BlancoClinico.copy(alpha = 0.85f),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = { backDispatcher?.onBackPressed() }) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Atrás",
                                 tint = BlancoClinico
                             )
@@ -111,7 +121,6 @@ fun CargaDocumentosScreen(
                         .background(Color.White, RoundedCornerShape(16.dp))
                         .border(1.dp, GrisAzulado, RoundedCornerShape(16.dp))
                         .clickable {
-                            // Permite elegir cualquier imagen o PDF del teléfono
                             launcher.launch("*/*")
                         },
                     contentAlignment = Alignment.Center
@@ -137,7 +146,7 @@ fun CargaDocumentosScreen(
                     }
                 }
 
-                // Tarjeta que muestra el archivo real cargado (sin la vista previa)
+                // Tarjeta que muestra el archivo real cargado
                 if (fileUri != null) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -191,7 +200,6 @@ fun CargaDocumentosScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Barra de progreso llena indicando que ya se cargó
                             LinearProgressIndicator(
                                 progress = { 1f },
                                 modifier = Modifier.fillMaxWidth(),

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,7 +41,7 @@ import com.example.oftapp.ui.viewmodel.RegistroAtencionViewModel
 @Composable
 fun OftAppNavigation() {
     val navController = rememberNavController()
-    var currentRole by remember { mutableStateOf("Tecnólogo Médico") }
+    var currentRole by rememberSaveable { mutableStateOf("Tecnólogo Médico") }
 
     val context = LocalContext.current
     val database = remember { AppDatabase.getDatabase(context) }
@@ -132,7 +133,18 @@ fun OftAppNavigation() {
                 onExamSelected = { examId ->
                     navController.navigate("detalle/$examId")
                 },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToHome = {
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = false }
+                    }
+                },
+                onNavigateToHistory = {
+                    navController.navigate("historial")
+                },
+                onNavigateToProfile = {
+                    navController.navigate("perfil")
+                }
             )
         }
 

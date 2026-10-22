@@ -187,7 +187,7 @@ fun HistorialClinicoScreen(
                             ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                                 .fillMaxWidth(),
                             textStyle = LocalTextStyle.current.copy(
                                 fontSize = 14.sp,

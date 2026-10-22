@@ -13,6 +13,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Search
+
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,7 +44,10 @@ import java.util.Locale
 fun ListadoBusquedaScreen(
     viewModel: ListadoBusquedaViewModel = viewModel(),
     onExamSelected: (String) -> Unit,
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filterOptions = listOf("Todos", "Pendientes", "Validados")
@@ -81,6 +89,56 @@ fun ListadoBusquedaScreen(
                     containerColor = AzulClinico
                 )
             )
+        },
+        bottomBar = {
+            NavigationBar(
+                containerColor = BlancoClinico,
+                tonalElevation = 8.dp
+            ) {
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToHome,
+                    icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") },
+                    label = { Text("Inicio") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
+                NavigationBarItem(
+                    selected = true,
+                    onClick = { },
+                    icon = { Icon(Icons.Outlined.Search, contentDescription = "Búsqueda") },
+                    label = { Text("Búsqueda") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = AzulClinico,
+                        selectedTextColor = AzulClinico,
+                        indicatorColor = AzulClinico.copy(alpha = 0.15f),
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToHistory,
+                    icon = { Icon(Icons.Outlined.History, contentDescription = "Historial") },
+                    label = { Text("Historial") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onNavigateToProfile,
+                    icon = { Icon(Icons.Outlined.Person, contentDescription = "Perfil") },
+                    label = { Text("Perfil") },
+                    colors = NavigationBarItemDefaults.colors(
+                        unselectedIconColor = GrisAzulado,
+                        unselectedTextColor = GrisAzulado
+                    )
+                )
+            }
         }
     ) { paddingValues ->
         Column(

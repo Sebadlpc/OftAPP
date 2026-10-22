@@ -16,7 +16,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.oftapp.ui.theme.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.example.oftapp.ui.theme.AzulClinico
+import com.example.oftapp.ui.theme.BlancoClinico
+import com.example.oftapp.ui.theme.GrisAzulado
+import com.example.oftapp.ui.theme.RojoAlerta
+import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.viewmodel.LoginViewModel
 
 @Composable
@@ -25,7 +30,7 @@ fun LoginScreen(
     onLoginSuccess: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var password by remember { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     val scrollState = rememberScrollState()
 
     // Al autenticarse correctamente, navegar hacia la ruta Dashboard

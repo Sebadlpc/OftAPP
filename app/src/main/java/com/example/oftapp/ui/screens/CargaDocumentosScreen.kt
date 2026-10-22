@@ -15,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
-import com.example.oftapp.ui.theme.OftAPPTheme
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import java.util.Locale
@@ -44,9 +44,9 @@ fun CargaDocumentosScreen(
     val context = LocalContext.current
 
     // Estados para guardar el archivo real seleccionado
-    var fileUri by remember { mutableStateOf<Uri?>(null) }
-    var fileName by remember { mutableStateOf("") }
-    var fileSize by remember { mutableStateOf("") }
+    var fileUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var fileName by rememberSaveable { mutableStateOf("") }
+    var fileSize by rememberSaveable { mutableStateOf("") }
 
     // Abre el explorador de archivos real del teléfono
     val launcher = rememberLauncherForActivityResult(
@@ -76,8 +76,9 @@ fun CargaDocumentosScreen(
         }
     }
 
-    OftAPPTheme(darkTheme = false) {
+
         Scaffold(
+            containerColor = BlancoClinico,
             topBar = {
                 TopAppBar(
                     title = {
@@ -103,8 +104,7 @@ fun CargaDocumentosScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulClinico)
                 )
-            },
-            containerColor = BlancoClinico
+            }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -165,7 +165,7 @@ fun CargaDocumentosScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.InsertDriveFile,
+                                        imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
                                         contentDescription = "Archivo",
                                         tint = RojoAlerta
                                     )
@@ -243,4 +243,4 @@ fun CargaDocumentosScreen(
             }
         }
     }
-}
+

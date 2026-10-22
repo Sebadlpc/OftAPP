@@ -5,9 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
@@ -15,6 +18,8 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,22 +28,31 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.oftapp.data.local.entity.ExamEntity
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
 import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
+import com.example.oftapp.ui.viewmodel.DashboardViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    viewModel: DashboardViewModel = viewModel(),
     userRole: String = "Médico",
     onNavigateToRegister: () -> Unit = {},
     onNavigateToUpload: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
-    onNavigateToHistory: () -> Unit = {}
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToDetail: (String) -> Unit = {}
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Scaffold(
         containerColor = BlancoClinico,
         topBar = {
@@ -53,7 +67,11 @@ fun DashboardScreen(
                             .clickable { /* Acción de notificaciones */ },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.NotificationsNone, contentDescription = "Notificaciones", tint = BlancoClinico)
+                        Icon(
+                            imageVector = Icons.Default.NotificationsNone,
+                            contentDescription = "Notificaciones",
+                            tint = BlancoClinico
+                        )
                         // Punto de alerta
                         Box(
                             modifier = Modifier
@@ -77,7 +95,7 @@ fun DashboardScreen(
                 contentColor = BlancoClinico,
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar")
+                Icon(Icons.Default.Add, contentDescription = "Registrar nuevo examen")
             }
         },
         bottomBar = {
@@ -151,64 +169,149 @@ fun DashboardScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
-                        Text("Bienvenida,", fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
-                        Text("Dra. Carla Ruiz", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Text("$userRole · Sede Norte", fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp), color = BlancoClinico.copy(alpha = 0.8f))
+                        Text("Bienvenido/a,", fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
+                        Text(
+                            text = if (userRole.contains("Médico", ignoreCase = true)) "Dra. Carla Ruiz" else "Tecnólogo OftApp",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "$userRole · Sede Central",
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 4.dp),
+                            color = BlancoClinico.copy(alpha = 0.85f)
+                        )
                     }
                 }
             }
 
             // 2. Acciones Rápidas
             item {
-                Text("Acciones rápidas", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = AzulClinico, modifier = Modifier.padding(bottom = 12.dp))
+                Text(
+                    text = "Acciones rápidas",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = AzulClinico,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    QuickActionButton("Registrar", Icons.Default.NoteAdd, onNavigateToRegister)
+                    QuickActionButton("Registrar", Icons.AutoMirrored.Filled.NoteAdd, onNavigateToRegister)
                     QuickActionButton("Subir", Icons.Default.Upload, onNavigateToUpload)
                     QuickActionButton("Buscar", Icons.Default.Search, onNavigateToSearch)
-                    QuickActionButton("Historial", Icons.Default.Assignment, onNavigateToHistory)
+                    QuickActionButton("Historial", Icons.AutoMirrored.Filled.Assignment, onNavigateToHistory)
                 }
             }
 
-            // 3. Resumen de Exámenes
+            // 3. Resumen de Métricas (Totales, Pendientes, Validados)
             item {
-                Text("Resumen de exámenes", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = AzulClinico, modifier = Modifier.padding(bottom = 12.dp))
+                Text(
+                    text = "Resumen de exámenes",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = AzulClinico,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    SummaryTile(Modifier.weight(1f), Icons.Default.Schedule, 1, "Pendientes", GrisAzulado, GrisAzulado.copy(alpha = 0.12f))
-                    SummaryTile(Modifier.weight(1f), Icons.Default.CheckCircleOutline, 2, "Validados", VerdeSalud, VerdeSalud.copy(alpha = 0.12f))
-                    SummaryTile(Modifier.weight(1f), Icons.Default.WarningAmber, 1, "Alertas", RojoAlerta, RojoAlerta.copy(alpha = 0.12f))
+                    SummaryTile(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Assessment,
+                        value = uiState.totalCount,
+                        label = "Totales",
+                        iconColor = AzulClinico,
+                        bgColor = AzulClinico.copy(alpha = 0.12f)
+                    )
+                    SummaryTile(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Schedule,
+                        value = uiState.pendingCount,
+                        label = "Pendientes",
+                        iconColor = GrisAzulado,
+                        bgColor = GrisAzulado.copy(alpha = 0.12f)
+                    )
+                    SummaryTile(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.CheckCircleOutline,
+                        value = uiState.validatedCount,
+                        label = "Validados",
+                        iconColor = VerdeSalud,
+                        bgColor = VerdeSalud.copy(alpha = 0.12f)
+                    )
                 }
             }
 
-            // 4. Recientes
+            // 4. Lista de Exámenes Recientes
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Recientes", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = AzulClinico)
                     Text(
-                        "Ver todos",
+                        text = "Exámenes recientes",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        color = AzulClinico
+                    )
+                    Text(
+                        text = "Ver todos",
                         fontSize = 13.sp,
                         color = AzulClinico,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.clickable { onNavigateToSearch() }
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Examen Dummy 1
-                RecentExamCard("Campimetría", "PAC-04821 · OD · 18 Sep 2026", "Validado", VerdeSalud, VerdeSalud.copy(alpha = 0.12f))
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            item { Spacer(modifier = Modifier.height(80.dp)) } // Espacio extra para el FAB
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AzulClinico)
+                    }
+                }
+            } else if (uiState.recentExams.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = BlancoClinico),
+                        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No hay exámenes registrados recientemente",
+                                color = GrisAzulado,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(uiState.recentExams, key = { it.id }) { exam ->
+                    RecentExamCard(
+                        exam = exam,
+                        onClick = { onNavigateToDetail(exam.id) }
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(80.dp)) } // Espacio para el FAB
         }
     }
 }
@@ -235,7 +338,12 @@ fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
                     .background(AzulClinico.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = label, tint = AzulClinico, modifier = Modifier.size(24.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = AzulClinico,
+                    modifier = Modifier.size(24.dp)
+                )
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextoOscuro)
@@ -244,7 +352,14 @@ fun QuickActionButton(label: String, icon: ImageVector, onClick: () -> Unit) {
 }
 
 @Composable
-fun SummaryTile(modifier: Modifier, icon: ImageVector, value: Int, label: String, iconColor: Color, bgColor: Color) {
+fun SummaryTile(
+    modifier: Modifier,
+    icon: ImageVector,
+    value: Int,
+    label: String,
+    iconColor: Color,
+    bgColor: Color
+) {
     OutlinedCard(
         modifier = modifier,
         colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
@@ -269,9 +384,26 @@ fun SummaryTile(modifier: Modifier, icon: ImageVector, value: Int, label: String
 }
 
 @Composable
-fun RecentExamCard(type: String, details: String, status: String, statusColor: Color, statusBg: Color) {
+fun RecentExamCard(
+    exam: ExamEntity,
+    onClick: () -> Unit
+) {
+    val isValidated = exam.status.equals("Validado", ignoreCase = true) ||
+            exam.status.equals("Completado", ignoreCase = true)
+    val statusColor = if (isValidated) VerdeSalud else GrisAzulado
+    val statusBg = if (isValidated) VerdeSalud.copy(alpha = 0.12f) else GrisAzulado.copy(alpha = 0.12f)
+
+    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.forLanguageTag("es-CL"))
+    val fechaFormateada = try {
+        dateFormat.format(exam.date)
+    } catch (_: Exception) {
+        "Fecha no disponible"
+    }
+
     OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
         border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(16.dp)
@@ -283,11 +415,21 @@ fun RecentExamCard(type: String, details: String, status: String, statusColor: C
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(type, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextoOscuro)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exam.examType,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = TextoOscuro
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(details, fontSize = 13.sp, color = GrisAzulado)
+                Text(
+                    text = "${exam.patientName} · ${exam.eye} · $fechaFormateada",
+                    fontSize = 13.sp,
+                    color = GrisAzulado
+                )
             }
+            Spacer(modifier = Modifier.width(8.dp))
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
@@ -295,10 +437,19 @@ fun RecentExamCard(type: String, details: String, status: String, statusColor: C
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Puntito de estado
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(statusColor))
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(statusColor)
+                )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(status, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    text = exam.status,
+                    color = statusColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

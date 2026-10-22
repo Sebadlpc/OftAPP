@@ -1,8 +1,10 @@
 package com.example.oftapp.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -10,32 +12,48 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.oftapp.data.local.entity.ExamEntity
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
 import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
+import com.example.oftapp.ui.theme.VerdeSalud
+import com.example.oftapp.ui.viewmodel.DetalleExamenViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleExamenScreen(
     examId: String,
-    onBack: () -> Unit,
-    onValidateClick: () -> Unit = {},
-    onDownloadClick: () -> Unit = {}
+    viewModel: DetalleExamenViewModel = viewModel(),
+    onBack: () -> Unit
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Cargar el examen correspondiente al examId
+    LaunchedEffect(examId) {
+        if (examId.isNotBlank()) {
+            viewModel.loadExam(examId)
+        }
+    }
+
     Scaffold(
         containerColor = BlancoClinico,
         topBar = {
@@ -72,59 +90,92 @@ fun DetalleExamenScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Tarjeta 1: Información Principal
-            InfoExamenCard(examId = examId)
-
-            // Tarjeta 2: Archivo Adjunto
-            ArchivoAdjuntoCard(onDownloadClick = onDownloadClick)
-
-            // Tarjeta 3: Observaciones Clínicas
-            ObservacionesCard()
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Sección Inferior: Mensaje de autorización y Botón de Validación
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = AzulClinico)
+            }
+        } else if (uiState.exam == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Solo personal autorizado puede validar",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = GrisAzulado
+                    text = "No se encontró el examen con identificador: $examId",
+                    color = GrisAzulado,
+                    style = MaterialTheme.typography.bodyLarge
                 )
+            }
+        } else {
+            val exam = uiState.exam!!
+            val isValidated = exam.status.equals("Validado", ignoreCase = true) ||
+                    exam.status.equals("Completado", ignoreCase = true)
 
-                Button(
-                    onClick = onValidateClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(26.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AzulClinico,
-                        contentColor = BlancoClinico
-                    )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Tarjeta 1: Ficha Clínica Completa
+                InfoExamenCard(exam = exam)
+
+                // Tarjeta 2: Archivo Adjunto y Enlace / URI
+                ArchivoAdjuntoCard(exam = exam)
+
+                // Tarjeta 3: Observaciones Clínicas
+                ObservacionesCard(notes = exam.notes)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Sección Inferior: Botón para cambiar de estado ("Validar")
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Validar examen",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = if (isValidated) "Examen validado clínicamente" else "Solo personal facultativo puede validar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isValidated) VerdeSalud else GrisAzulado,
+                        fontWeight = if (isValidated) FontWeight.Bold else FontWeight.Normal
                     )
+
+                    Button(
+                        onClick = { viewModel.validateExam() },
+                        enabled = !isValidated,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(26.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AzulClinico,
+                            contentColor = BlancoClinico,
+                            disabledContainerColor = VerdeSalud.copy(alpha = 0.2f),
+                            disabledContentColor = VerdeSalud
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isValidated) "Examen Validado" else "Validar examen",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -132,12 +183,24 @@ fun DetalleExamenScreen(
 }
 
 @Composable
-private fun InfoExamenCard(examId: String) {
+private fun InfoExamenCard(exam: ExamEntity) {
+    val isValidated = exam.status.equals("Validado", ignoreCase = true) ||
+            exam.status.equals("Completado", ignoreCase = true)
+    val statusColor = if (isValidated) VerdeSalud else GrisAzulado
+    val statusBg = if (isValidated) VerdeSalud.copy(alpha = 0.12f) else GrisAzulado.copy(alpha = 0.12f)
+
+    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.forLanguageTag("es-CL"))
+    val fechaTexto = try {
+        dateFormat.format(exam.date)
+    } catch (_: Exception) {
+        "N/D"
+    }
+
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
-        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
+        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.25f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -146,16 +209,16 @@ private fun InfoExamenCard(examId: String) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Campimetría",
+                    text = exam.examType,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextoOscuro
                 )
 
-                // Insignia de estado "Pendiente"
+                // Insignia de estado
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = GrisAzulado.copy(alpha = 0.15f)
+                    color = statusBg
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -166,11 +229,11 @@ private fun InfoExamenCard(examId: String) {
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(GrisAzulado)
+                                .background(statusColor)
                         )
                         Text(
-                            text = "Pendiente",
-                            color = GrisAzulado,
+                            text = exam.status,
+                            color = statusColor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -179,7 +242,7 @@ private fun InfoExamenCard(examId: String) {
             }
 
             Text(
-                text = "$examId · María González",
+                text = "${exam.id} · ${exam.patientName}",
                 fontSize = 14.sp,
                 color = GrisAzulado,
                 modifier = Modifier.padding(top = 2.dp, bottom = 16.dp)
@@ -189,12 +252,12 @@ private fun InfoExamenCard(examId: String) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 CampoDetalle(
                     label = "Ojo evaluado",
-                    valor = "OD",
+                    valor = exam.eye,
                     modifier = Modifier.weight(1f)
                 )
                 CampoDetalle(
                     label = "Fecha",
-                    valor = "18 Sep 2026",
+                    valor = fechaTexto,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -204,12 +267,12 @@ private fun InfoExamenCard(examId: String) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 CampoDetalle(
                     label = "Sede",
-                    valor = "Sede Centro",
+                    valor = exam.branch,
                     modifier = Modifier.weight(1f)
                 )
                 CampoDetalle(
-                    label = "Tecnólogo",
-                    valor = "L. Pardo",
+                    label = "Especialista / Tecnólogo",
+                    valor = exam.doctorName,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -218,16 +281,21 @@ private fun InfoExamenCard(examId: String) {
 }
 
 @Composable
-private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
+private fun ArchivoAdjuntoCard(exam: ExamEntity) {
+    val context = LocalContext.current
+    val hasUri = exam.fileUri != null
+    val fileName = exam.fileUri?.lastPathSegment ?: "informe_clinico_${exam.id}.pdf"
+    val fileUriString = exam.fileUri?.toString() ?: "URI no registrada"
+
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
-        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
+        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.25f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Archivo adjunto",
+                text = "Archivo o informe adjunto",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 color = TextoOscuro,
@@ -238,7 +306,7 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ícono PDF usando RojoAlerta del archivo Color.kt
+                // Ícono PDF o Documento
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -248,7 +316,7 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Description,
-                        contentDescription = "PDF",
+                        contentDescription = "Documento",
                         tint = RojoAlerta
                     )
                 }
@@ -257,24 +325,37 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "campimetria_OD.pdf",
+                        text = fileName,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TextoOscuro
                     )
                     Text(
-                        text = "2.4 MB · PDF",
-                        fontSize = 13.sp,
-                        color = GrisAzulado
+                        text = if (hasUri) fileUriString else "Sin archivo físico asociado",
+                        fontSize = 12.sp,
+                        color = GrisAzulado,
+                        maxLines = 1
                     )
                 }
 
-                IconButton(onClick = onDownloadClick) {
-                    Icon(
-                        imageVector = Icons.Default.Download,
-                        contentDescription = "Descargar",
-                        tint = AzulClinico
-                    )
+                if (hasUri) {
+                    IconButton(onClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = exam.fileUri
+                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            // En caso de que no haya visor asociado en el dispositivo
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = "Abrir documento",
+                            tint = AzulClinico
+                        )
+                    }
                 }
             }
         }
@@ -282,12 +363,12 @@ private fun ArchivoAdjuntoCard(onDownloadClick: () -> Unit) {
 }
 
 @Composable
-private fun ObservacionesCard() {
+private fun ObservacionesCard(notes: String) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
-        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f))
+        colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.25f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -313,7 +394,7 @@ private fun ObservacionesCard() {
                     .padding(14.dp)
             ) {
                 Text(
-                    text = "Campo visual sin escotomas significativos. Se recomienda control en 6 meses.",
+                    text = notes.ifBlank { "Sin observaciones registradas para esta atención médica." },
                     fontSize = 14.sp,
                     color = TextoOscuro,
                     lineHeight = 20.sp

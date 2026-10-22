@@ -30,13 +30,30 @@ class ListadoBusquedaViewModel(
             repository.searchExams(query)
         }
         .combine(_selectedFilter) { exams, filter ->
-            val filteredExams = if (filter.equals("Todos", ignoreCase = true) || filter.isBlank()) {
-                exams
-            } else {
-                exams.filter { exam ->
-                    exam.examType.equals(filter, ignoreCase = true) ||
-                            exam.status.equals(filter, ignoreCase = true) ||
-                            exam.branch.contains(filter, ignoreCase = true)
+            val filteredExams = when {
+                filter.equals("Todos", ignoreCase = true) || filter.isBlank() -> {
+                    exams
+                }
+                filter.equals("Pendientes", ignoreCase = true) -> {
+                    exams.filter {
+                        it.status.equals("Pendiente", ignoreCase = true) ||
+                                it.status.equals("En Proceso", ignoreCase = true) ||
+                                it.status.equals("Pendientes", ignoreCase = true)
+                    }
+                }
+                filter.equals("Validados", ignoreCase = true) -> {
+                    exams.filter {
+                        it.status.equals("Validado", ignoreCase = true) ||
+                                it.status.equals("Completado", ignoreCase = true) ||
+                                it.status.equals("Validados", ignoreCase = true)
+                    }
+                }
+                else -> {
+                    exams.filter { exam ->
+                        exam.examType.equals(filter, ignoreCase = true) ||
+                                exam.status.equals(filter, ignoreCase = true) ||
+                                exam.branch.contains(filter, ignoreCase = true)
+                    }
                 }
             }
             ListadoUiState(

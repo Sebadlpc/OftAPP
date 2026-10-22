@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
@@ -25,37 +26,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.oftapp.data.local.entity.ExamEntity
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
 import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
-
-// Modelos de prueba para que la pantalla compile
-data class PatientMock(val id: String, val name: String, val rut: String, val age: Int, val gender: String, val diagnosis: String)
-data class ExamMock(val id: String, val date: String, val time: String, val status: String, val examType: String, val branch: String, val technologist: String, val eye: String, val observations: String, val hasFile: Boolean)
+import com.example.oftapp.ui.viewmodel.HistorialClinicoViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistorialClinicoScreen(
+    initialPatientName: String? = null,
+    viewModel: HistorialClinicoViewModel = viewModel(),
     onSelectExam: (String) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {}
 ) {
-    // Datos de prueba
-    val patients = listOf(
-        PatientMock("PAT-001", "María González", "12.345.678-9", 65, "F", "Glaucoma Crónico Simple OD. Sospecha OS."),
-        PatientMock("PAT-002", "Juan Pérez", "9.876.543-2", 72, "M", "Catarata Senil bilateral.")
-    )
-    val exams = listOf(
-        ExamMock("EX-1", "12 Oct 2026", "10:30", "Validado", "Campo Visual Computarizado", "Sede Norte", "Tec. A. Rojas", "OD", "Defecto arciforme superior consistente con daño glaucomatoso.", true),
-        ExamMock("EX-2", "05 Sep 2026", "09:15", "Pendiente", "Tonometría", "Sede Centro", "Tec. M. Silva", "Ambos", "PIO OD: 18mmHg, OS: 16mmHg.", false)
+    val uiState by viewModel.uiState.collectAsState()
+    var expandedDropdown by remember { mutableStateOf(false) }
+
+    // Pacientes frecuentes o de muestra
+    val listaPacientes = listOf(
+        "Juan Pérez",
+        "María López",
+        "Carlos Gómez",
+        "Ana Martínez",
+        "María González"
     )
 
-    var selectedPatient by remember { mutableStateOf(patients[0]) }
-    var expandedDropdown by remember { mutableStateOf(false) }
+    // Si recibimos un parámetro de paciente inicial por navegación, aplicarlo
+    LaunchedEffect(initialPatientName) {
+        if (!initialPatientName.isNullOrBlank()) {
+            viewModel.selectPatient(initialPatientName)
+        }
+    }
 
     Scaffold(
         containerColor = BlancoClinico,
@@ -63,13 +73,26 @@ fun HistorialClinicoScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Historial Clínico", fontWeight = FontWeight.Bold, color = BlancoClinico, fontSize = 18.sp)
-                        Text("Línea de Tiempo del Paciente", color = BlancoClinico.copy(alpha = 0.8f), fontSize = 12.sp)
+                        Text(
+                            text = "Historial Clínico",
+                            fontWeight = FontWeight.Bold,
+                            color = BlancoClinico,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Línea de Tiempo del Paciente",
+                            color = BlancoClinico.copy(alpha = 0.85f),
+                            fontSize = 12.sp
+                        )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Menú lateral */ }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú", tint = BlancoClinico)
+                    IconButton(onClick = onNavigateToHome) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = BlancoClinico
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulClinico)
@@ -80,7 +103,7 @@ fun HistorialClinicoScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToHome,
-                    icon = { Icon(Icons.Outlined.Home, null) },
+                    icon = { Icon(Icons.Outlined.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") },
                     colors = NavigationBarItemDefaults.colors(
                         unselectedIconColor = GrisAzulado,
@@ -90,7 +113,7 @@ fun HistorialClinicoScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToSearch,
-                    icon = { Icon(Icons.Outlined.Search, null) },
+                    icon = { Icon(Icons.Outlined.Search, contentDescription = "Búsqueda") },
                     label = { Text("Búsqueda") },
                     colors = NavigationBarItemDefaults.colors(
                         unselectedIconColor = GrisAzulado,
@@ -100,7 +123,7 @@ fun HistorialClinicoScreen(
                 NavigationBarItem(
                     selected = true,
                     onClick = { },
-                    icon = { Icon(Icons.Outlined.History, null) },
+                    icon = { Icon(Icons.Outlined.History, contentDescription = "Historial") },
                     label = { Text("Historial") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = AzulClinico,
@@ -113,7 +136,7 @@ fun HistorialClinicoScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToProfile,
-                    icon = { Icon(Icons.Outlined.Person, null) },
+                    icon = { Icon(Icons.Outlined.Person, contentDescription = "Perfil") },
                     label = { Text("Perfil") },
                     colors = NavigationBarItemDefaults.colors(
                         unselectedIconColor = GrisAzulado,
@@ -132,36 +155,56 @@ fun HistorialClinicoScreen(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            // 1. Selector de Paciente
+            // 1. Selector de Paciente (ExposedDropdownMenuBox)
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Paciente:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GrisAzulado, modifier = Modifier.padding(end = 8.dp))
+                    Text(
+                        text = "Paciente:",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GrisAzulado,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                     ExposedDropdownMenuBox(
                         expanded = expandedDropdown,
                         onExpandedChange = { expandedDropdown = !expandedDropdown },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
-                            value = "${selectedPatient.name} (${selectedPatient.rut})",
+                            value = uiState.selectedPatient.ifBlank { "Seleccionar paciente..." },
                             onValueChange = {},
                             readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
+                            },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = AzulClinico,
-                                unfocusedBorderColor = GrisAzulado,
-                                focusedContainerColor = BlancoClinico,
-                                unfocusedContainerColor = BlancoClinico
+                                unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                focusedTextColor = TextoOscuro,
+                                unfocusedTextColor = TextoOscuro
                             ),
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
-                            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextoOscuro)
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            textStyle = LocalTextStyle.current.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextoOscuro
+                            )
                         )
-                        ExposedDropdownMenu(expanded = expandedDropdown, onDismissRequest = { expandedDropdown = false }) {
-                            patients.forEach { patient ->
+                        ExposedDropdownMenu(
+                            expanded = expandedDropdown,
+                            onDismissRequest = { expandedDropdown = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            listaPacientes.forEach { pacienteNombre ->
                                 DropdownMenuItem(
-                                    text = { Text("${patient.name} (${patient.rut})", color = TextoOscuro) },
+                                    text = { Text(pacienteNombre, color = TextoOscuro) },
                                     onClick = {
-                                        selectedPatient = patient
+                                        viewModel.selectPatient(pacienteNombre)
                                         expandedDropdown = false
                                     }
                                 )
@@ -173,6 +216,9 @@ fun HistorialClinicoScreen(
 
             // 2. Tarjeta Resumen del Paciente
             item {
+                val nombrePaciente = uiState.selectedPatient.ifBlank { "Paciente Seleccionado" }
+                val inicial = nombrePaciente.take(1).uppercase()
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = AzulClinico.copy(alpha = 0.08f)),
@@ -187,28 +233,67 @@ fun HistorialClinicoScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    modifier = Modifier.size(48.dp).clip(CircleShape).background(AzulClinico),
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(AzulClinico),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(selectedPatient.name.take(1), color = BlancoClinico, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                    Text(
+                                        text = inicial,
+                                        color = BlancoClinico,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    )
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text(selectedPatient.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextoOscuro)
-                                    Text("RUT: ${selectedPatient.rut} · ${selectedPatient.age} años (${selectedPatient.gender})", fontSize = 12.sp, color = GrisAzulado)
+                                    Text(
+                                        text = nombrePaciente,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = TextoOscuro
+                                    )
+                                    Text(
+                                        text = "Ficha clínica digital vinculada",
+                                        fontSize = 12.sp,
+                                        color = GrisAzulado
+                                    )
                                 }
                             }
                             Box(
-                                modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(AzulClinico).padding(horizontal = 8.dp, vertical = 4.dp)
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(AzulClinico)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
-                                Text("${exams.size} exámenes", color = BlancoClinico, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = "${uiState.patientExams.size} exámenes",
+                                    color = BlancoClinico,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
 
-                        Divider(modifier = Modifier.padding(vertical = 12.dp), color = AzulClinico.copy(alpha = 0.15f))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = AzulClinico.copy(alpha = 0.15f)
+                        )
 
-                        Text("Diagnóstico Oftalmológico Base:", color = AzulClinico, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text(selectedPatient.diagnosis, color = TextoOscuro, fontWeight = FontWeight.Medium, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                        Text(
+                            text = "Seguimiento Oftalmológico:",
+                            color = AzulClinico,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "Historial evolutivo cronológico de exámenes y procedimientos registrados.",
+                            color = TextoOscuro,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
                 }
             }
@@ -221,17 +306,65 @@ fun HistorialClinicoScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, tint = AzulClinico, modifier = Modifier.size(16.dp))
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = AzulClinico,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Evolución Cronológica de Exámenes", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextoOscuro)
+                        Text(
+                            text = "Evolución Cronológica de Exámenes",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = TextoOscuro
+                        )
                     }
                     Text("Más reciente primero", fontSize = 11.sp, color = GrisAzulado)
                 }
             }
 
-            // 4. Línea de Tiempo (Exámenes)
-            items(exams) { exam ->
-                TimelineExamCard(exam = exam, onClick = { onSelectExam(exam.id) })
+            // 4. Contenido de la Línea de Tiempo (Timeline)
+            if (uiState.isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AzulClinico)
+                    }
+                }
+            } else if (uiState.patientExams.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No hay exámenes registrados en el historial de este paciente",
+                                color = GrisAzulado,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(uiState.patientExams, key = { it.id }) { exam ->
+                    TimelineExamCard(
+                        exam = exam,
+                        onClick = { onSelectExam(exam.id) }
+                    )
+                }
             }
 
             item { Spacer(modifier = Modifier.height(20.dp)) }
@@ -240,24 +373,45 @@ fun HistorialClinicoScreen(
 }
 
 @Composable
-fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
-    val isStatusValid = exam.status == "Validado"
-    val statusColor = if (isStatusValid) VerdeSalud else RojoAlerta
-    val statusBgColor = if (isStatusValid) VerdeSalud.copy(alpha = 0.12f) else RojoAlerta.copy(alpha = 0.12f)
-    val statusIcon = if (isStatusValid) Icons.Default.CheckCircle else Icons.Default.ErrorOutline
+fun TimelineExamCard(exam: ExamEntity, onClick: () -> Unit) {
+    val isValidated = exam.status.equals("Validado", ignoreCase = true) ||
+            exam.status.equals("Completado", ignoreCase = true)
+    val statusColor = if (isValidated) VerdeSalud else RojoAlerta
+    val statusBgColor = if (isValidated) VerdeSalud.copy(alpha = 0.12f) else RojoAlerta.copy(alpha = 0.12f)
+    val statusIcon = if (isValidated) Icons.Default.CheckCircle else Icons.Default.ErrorOutline
 
-    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        // Columna de la línea y el punto
-        Box(modifier = Modifier.width(24.dp).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
-            // Línea vertical
-            Box(modifier = Modifier.width(2.dp).fillMaxHeight().background(AzulClinico.copy(alpha = 0.3f)))
-            // Punto de estado
-            Box(modifier = Modifier
-                .padding(top = 24.dp)
-                .size(14.dp)
-                .clip(CircleShape)
-                .background(statusColor)
-                .border(3.dp, BlancoClinico, CircleShape)
+    val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.forLanguageTag("es-CL"))
+    val fechaTexto = try {
+        dateFormat.format(exam.date)
+    } catch (_: Exception) {
+        "N/D"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+    ) {
+        // Columna de la línea y el punto de la línea de tiempo
+        Box(
+            modifier = Modifier
+                .width(24.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(AzulClinico.copy(alpha = 0.3f))
+            )
+            Box(
+                modifier = Modifier
+                    .padding(top = 24.dp)
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(statusColor)
+                    .border(3.dp, BlancoClinico, CircleShape)
             )
         }
 
@@ -267,7 +421,7 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
                 .clickable { onClick() },
-            colors = CardDefaults.cardColors(containerColor = BlancoClinico),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
             border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -280,11 +434,19 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = AzulClinico, modifier = Modifier.size(14.dp))
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = AzulClinico,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(exam.date, color = AzulClinico, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("(${exam.time})", color = GrisAzulado, fontSize = 11.sp)
+                        Text(
+                            text = fechaTexto,
+                            color = AzulClinico,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -296,7 +458,12 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                     ) {
                         Icon(statusIcon, contentDescription = null, tint = statusColor, modifier = Modifier.size(12.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(exam.status, color = statusColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = exam.status,
+                            color = statusColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
@@ -309,8 +476,17 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                     verticalAlignment = Alignment.Top
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(exam.examType, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextoOscuro)
-                        Text("${exam.branch.split("-")[0]} · ${exam.technologist}", fontSize = 11.sp, color = GrisAzulado)
+                        Text(
+                            text = exam.examType,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = TextoOscuro
+                        )
+                        Text(
+                            text = "${exam.branch} · ${exam.doctorName}",
+                            fontSize = 11.sp,
+                            color = GrisAzulado
+                        )
                     }
                     Box(
                         modifier = Modifier
@@ -318,41 +494,74 @@ fun TimelineExamCard(exam: ExamMock, onClick: () -> Unit) {
                             .background(GrisAzulado.copy(alpha = 0.1f))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text(exam.eye, color = AzulClinico, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = exam.eye,
+                            color = AzulClinico,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Observaciones
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(GrisAzulado.copy(alpha = 0.08f))
-                        .padding(8.dp)
-                ) {
-                    Text("\"${exam.observations}\"", fontSize = 12.sp, color = TextoOscuro, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (exam.notes.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(GrisAzulado.copy(alpha = 0.08f))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "\"${exam.notes}\"",
+                            fontSize = 12.sp,
+                            color = TextoOscuro,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Divider(color = GrisAzulado.copy(alpha = 0.2f))
+                HorizontalDivider(color = GrisAzulado.copy(alpha = 0.15f))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Fila Inferior: Acción
+                // Fila Inferior: Acción y enlace
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Description, contentDescription = null, tint = AzulClinico, modifier = Modifier.size(14.dp))
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = AzulClinico,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(if (exam.hasFile) "informe_adjunto.pdf" else "Ver informe digital", fontSize = 11.sp, color = AzulClinico, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = if (exam.fileUri != null) "Informe adjunto disponible" else "Ficha digital",
+                            fontSize = 11.sp,
+                            color = AzulClinico,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Revisar estudio", fontSize = 11.sp, color = AzulClinico, fontWeight = FontWeight.SemiBold)
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = AzulClinico, modifier = Modifier.size(14.dp))
+                        Text(
+                            text = "Ver detalle",
+                            fontSize = 11.sp,
+                            color = AzulClinico,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = AzulClinico,
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
                 }
             }

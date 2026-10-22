@@ -11,7 +11,7 @@ import com.example.oftapp.data.repository.OftAppRepository
  * (como `examId`) hacia las clases ViewModel del proyecto.
  */
 @Suppress("UNCHECKED_CAST")
-class ViewModelFactory(
+class AppViewModelFactory(
     private val repository: OftAppRepository,
     private val examId: String? = null
 ) : ViewModelProvider.Factory {
@@ -40,3 +40,8 @@ class ViewModelFactory(
         }
     }
 }
+
+/**
+ * Alias de retrocompatibilidad con ViewModelFactory.
+ */
+typealias ViewModelFactory = AppViewModelFactory

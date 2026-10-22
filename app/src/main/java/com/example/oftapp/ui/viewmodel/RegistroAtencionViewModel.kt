@@ -1,8 +1,10 @@
 package com.example.oftapp.ui.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.oftapp.data.local.entity.ConsultaEntity
+import com.example.oftapp.data.local.entity.DocumentoEntity
 import com.example.oftapp.data.local.entity.ExamEntity
 import com.example.oftapp.data.repository.OftAppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,11 +44,19 @@ class RegistroAtencionViewModel(
         _uiState.update { it.copy(eye = eye, errorMessage = null) }
     }
 
+    fun onNotesChange(notes: String) {
+        _uiState.update { it.copy(notes = notes, errorMessage = null) }
+    }
+
+    fun onFileSelected(uri: Uri?, fileName: String? = null) {
+        _uiState.update { it.copy(fileUri = uri, fileName = fileName, errorMessage = null) }
+    }
+
     /**
      * Valida el formulario y registra la consulta y el examen clínico en la base de datos.
      *
      * @param doctorName Nombre del profesional responsable.
-     * @param notes Observaciones clínicas adicionales.
+     * @param notes Observaciones clínicas adicionales (si se omite, usa la de uiState).
      */
     fun registrarAtencion(doctorName: String = "Dr. Asignado", notes: String = "") {
         val currentState = _uiState.value
@@ -67,6 +77,8 @@ class RegistroAtencionViewModel(
             _uiState.update { it.copy(errorMessage = "Debe seleccionar el ojo evaluado") }
             return
         }
+
+        val finalNotes = if (notes.isNotBlank()) notes else currentState.notes
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, errorMessage = null) }
@@ -90,9 +102,21 @@ class RegistroAtencionViewModel(
                     status = "Pendiente",
                     branch = currentState.branch,
                     doctorName = doctorName,
-                    notes = notes
+                    notes = finalNotes,
+                    fileUri = currentState.fileUri
                 )
                 repository.insertExam(exam)
+
+                if (currentState.fileUri != null || !currentState.fileName.isNullOrBlank()) {
+                    val documento = DocumentoEntity(
+                        id = UUID.randomUUID().toString(),
+                        examId = exam.id,
+                        fileName = currentState.fileName ?: "documento_adjunto.pdf",
+                        fileUri = currentState.fileUri,
+                        uploadDate = exam.date
+                    )
+                    repository.insertDocumento(documento)
+                }
 
                 _uiState.update {
                     it.copy(

@@ -1,255 +1,393 @@
 package com.example.oftapp.ui.screens
 
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
-import com.example.oftapp.ui.theme.OftAPPTheme
+import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import com.example.oftapp.ui.viewmodel.RegistroAtencionViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegistroAtencionScreen(onNextToDocumentUpload: () -> Unit) {
-    // Controlador para que la flecha superior vuelva atrás sin cambiar OftAppNavigation
-    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+fun RegistroAtencionScreen(
+    viewModel: RegistroAtencionViewModel = viewModel(),
+    onNavigateBack: () -> Unit = {},
+    onNextToDocumentUpload: () -> Unit = {}
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Estados del formulario
-    var idPaciente by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf("19 Sep 2026") }
-    var sede by remember { mutableStateOf("") }
     var expandedSede by remember { mutableStateOf(false) }
-    val sedesDisponibles = listOf("Sede Norte", "Sede Centro", "Sede Sur")
+    val sedesDisponibles = listOf("Sede Central", "Sede Norte", "Sede Las Condes", "Sede Providencia")
+    val tiposExamen = listOf("Campimetría", "Tonometría", "OCT Retinal", "Fundoscopía")
+    val ojosDisponibles = listOf("OD (derecho)", "OI (izquierdo)", "Ambos Ojos (AO)")
 
-    var tipoExamen by remember { mutableStateOf("Campimetría") }
-    var ojoEvaluado by remember { mutableStateOf("OD (derecho)") }
-
-    // Estados del Calendario
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-
-    // Detecta el toque en cualquier parte de la caja de fecha para abrir el calendario
-    val dateInteractionSource = remember { MutableInteractionSource() }
-    LaunchedEffect(dateInteractionSource) {
-        dateInteractionSource.interactions.collect { interaction ->
-            if (interaction is PressInteraction.Release) {
-                showDatePicker = true
+    // Selector de archivo local
+    val fileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            var extractedName = "documento_adjunto.pdf"
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst() && nameIndex != -1) {
+                    extractedName = cursor.getString(nameIndex)
+                }
             }
+            viewModel.onFileSelected(uri, extractedName)
         }
     }
 
-    // Forzamos el tema claro en esta vista para evitar letras blancas sobre fondo blanco
-    OftAPPTheme(darkTheme = false) {
-        val textFieldColors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = TextoOscuro,
-            unfocusedTextColor = TextoOscuro,
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            focusedBorderColor = AzulClinico,
-            unfocusedBorderColor = GrisAzulado,
-            cursorColor = AzulClinico
-        )
+    // Manejo de éxito con Snackbar y retorno
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            snackbarHostState.showSnackbar("Examen registrado exitosamente")
+            delay(400)
+            viewModel.resetState()
+            onNavigateBack()
+        }
+    }
 
-        if (showDatePicker) {
-            DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            datePickerState.selectedDateMillis?.let { millis ->
-                                val sdf = SimpleDateFormat("dd MMM yyyy", Locale("es", "CL"))
-                                sdf.timeZone = TimeZone.getTimeZone("UTC")
-                                selectedDate = sdf.format(Date(millis))
-                            }
-                            showDatePicker = false
-                        }
-                    ) {
-                        Text("Aceptar", color = AzulClinico, fontWeight = FontWeight.Bold)
+    // Manejo de errores de validación
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { errorMsg ->
+            snackbarHostState.showSnackbar(errorMsg)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Registrar examen", color = BlancoClinico, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Atrás",
+                            tint = BlancoClinico
+                        )
                     }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDatePicker = false }) {
-                        Text("Cancelar", color = GrisAzulado)
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
-        }
-
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Registrar examen", color = BlancoClinico) },
-                    navigationIcon = {
-                        IconButton(onClick = { backDispatcher?.onBackPressed() }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Atrás",
-                                tint = BlancoClinico
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulClinico)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AzulClinico)
+            )
+        },
+        containerColor = BlancoClinico
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 1. Identificador / Nombre del Paciente
+            Text("Paciente / ID *", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = uiState.patientId,
+                onValueChange = { viewModel.onPatientIdChange(it) },
+                placeholder = { Text("Ej. PAC-04821 o Nombre del paciente", color = GrisAzulado) },
+                textStyle = TextStyle(color = TextoOscuro, fontSize = 16.sp),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AzulClinico,
+                    unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = TextoOscuro,
+                    unfocusedTextColor = TextoOscuro
                 )
-            },
-            containerColor = BlancoClinico
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .padding(16.dp)
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // 1. ID del paciente
-                Text("ID del paciente *", color = TextoOscuro, fontWeight = FontWeight.Bold)
-                OutlinedTextField(
-                    value = idPaciente,
-                    onValueChange = { idPaciente = it },
-                    placeholder = { Text("PAC-00000", color = GrisAzulado) },
-                    textStyle = TextStyle(color = TextoOscuro, fontSize = 16.sp),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = textFieldColors
-                )
+            )
 
-                // 2. Fecha del examen
-                Text("Fecha del examen", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            // 2. Sede / Sucursal
+            Text("Sede *", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            ExposedDropdownMenuBox(
+                expanded = expandedSede,
+                onExpandedChange = { expandedSede = !expandedSede },
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 OutlinedTextField(
-                    value = selectedDate,
+                    value = uiState.branch,
                     onValueChange = {},
                     readOnly = true,
-                    interactionSource = dateInteractionSource,
-                    textStyle = TextStyle(color = TextoOscuro, fontSize = 16.sp),
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Abrir calendario",
-                                tint = AzulClinico
-                            )
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = textFieldColors
-                )
-
-                // 3. Sede (Menú desplegable)
-                Text("Sede", color = TextoOscuro, fontWeight = FontWeight.Bold)
-                ExposedDropdownMenuBox(
-                    expanded = expandedSede,
-                    onExpandedChange = { expandedSede = !expandedSede }
-                ) {
-                    OutlinedTextField(
-                        value = sede,
-                        onValueChange = {},
-                        readOnly = true,
-                        placeholder = { Text("Selecciona una sede", color = GrisAzulado) },
-                        textStyle = TextStyle(color = TextoOscuro, fontSize = 16.sp),
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSede)
-                        },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = textFieldColors
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedSede,
-                        onDismissRequest = { expandedSede = false },
-                        modifier = Modifier.background(Color.White)
-                    ) {
-                        sedesDisponibles.forEach { opcion ->
-                            DropdownMenuItem(
-                                text = { Text(opcion, color = TextoOscuro) },
-                                onClick = {
-                                    sede = opcion
-                                    expandedSede = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // 4. Tipo de examen
-                Text("Tipo de examen *", color = TextoOscuro, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Campimetría", "Topografía").forEach { examen ->
-                        val seleccionado = tipoExamen == examen
-                        OutlinedButton(
-                            onClick = { tipoExamen = examen },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (seleccionado) AzulClinico else Color.White,
-                                contentColor = if (seleccionado) BlancoClinico else TextoOscuro
-                            ),
-                            border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado)
-                        ) {
-                            Text(examen)
-                        }
-                    }
-                }
-
-                // 5. Ojo evaluado
-                Text("Ojo evaluado *", color = TextoOscuro, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("OD (derecho)", "OI (izquierdo)").forEach { ojo ->
-                        val seleccionado = ojoEvaluado == ojo
-                        OutlinedButton(
-                            onClick = { ojoEvaluado = ojo },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (seleccionado) AzulClinico else Color.White,
-                                contentColor = if (seleccionado) BlancoClinico else TextoOscuro
-                            ),
-                            border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado)
-                        ) {
-                            Text(ojo)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Botón para avanzar a Carga de Documentos
-                Button(
-                    onClick = onNextToDocumentUpload,
+                    placeholder = { Text("Selecciona una sede médica", color = GrisAzulado) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSede) },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
+                        .menuAnchor()
+                        .fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AzulClinico)
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AzulClinico,
+                        unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = TextoOscuro,
+                        unfocusedTextColor = TextoOscuro
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedSede,
+                    onDismissRequest = { expandedSede = false },
+                    modifier = Modifier.background(Color.White)
                 ) {
-                    Text(
-                        text = "Siguiente: Cargar Documentos",
+                    sedesDisponibles.forEach { opcion ->
+                        DropdownMenuItem(
+                            text = { Text(opcion, color = TextoOscuro) },
+                            onClick = {
+                                viewModel.onBranchChange(opcion)
+                                expandedSede = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // 3. Tipo de examen
+            Text("Tipo de examen *", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                tiposExamen.take(2).forEach { examen ->
+                    val seleccionado = uiState.examType == examen
+                    OutlinedButton(
+                        onClick = { viewModel.onExamTypeChange(examen) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (seleccionado) AzulClinico else Color.White,
+                            contentColor = if (seleccionado) BlancoClinico else TextoOscuro
+                        ),
+                        border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(examen)
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                tiposExamen.drop(2).forEach { examen ->
+                    val seleccionado = uiState.examType == examen
+                    OutlinedButton(
+                        onClick = { viewModel.onExamTypeChange(examen) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (seleccionado) AzulClinico else Color.White,
+                            contentColor = if (seleccionado) BlancoClinico else TextoOscuro
+                        ),
+                        border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(examen)
+                    }
+                }
+            }
+
+            // 4. Ojo evaluado
+            Text("Ojo evaluado *", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ojosDisponibles.forEach { ojo ->
+                    val seleccionado = uiState.eye == ojo
+                    OutlinedButton(
+                        onClick = { viewModel.onEyeChange(ojo) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (seleccionado) AzulClinico else Color.White,
+                            contentColor = if (seleccionado) BlancoClinico else TextoOscuro
+                        ),
+                        border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = when (ojo) {
+                                "OD (derecho)" -> "OD"
+                                "OI (izquierdo)" -> "OI"
+                                else -> "AO"
+                            },
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            // 5. Notas Clínicas / Observaciones
+            Text("Observaciones clínicas", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = uiState.notes,
+                onValueChange = { viewModel.onNotesChange(it) },
+                placeholder = { Text("Escriba aquí las notas clínicas del procedimiento...", color = GrisAzulado) },
+                minLines = 3,
+                maxLines = 5,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AzulClinico,
+                    unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = TextoOscuro,
+                    unfocusedTextColor = TextoOscuro
+                )
+            )
+
+            // 6. Selector de Archivo Adjunto
+            Text("Documento o informe anexo", color = TextoOscuro, fontWeight = FontWeight.Bold)
+            if (uiState.fileUri != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(14.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = "Archivo adjunto",
+                                tint = RojoAlerta,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = uiState.fileName ?: "archivo_adjunto.pdf",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp,
+                                    color = TextoOscuro
+                                )
+                                Text(
+                                    text = "Adjunto listo para registrar",
+                                    fontSize = 12.sp,
+                                    color = GrisAzulado
+                                )
+                            }
+                        }
+                        IconButton(onClick = { viewModel.onFileSelected(null, null) }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Eliminar archivo",
+                                tint = GrisAzulado
+                            )
+                        }
+                    }
+                }
+            } else {
+                OutlinedCard(
+                    onClick = { fileLauncher.launch("*/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AttachFile,
+                            contentDescription = "Adjuntar",
+                            tint = AzulClinico
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Adjuntar documento (PDF o imagen)",
+                            color = AzulClinico,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 7. Botón de Registro de Atención con Indicador de Carga
+            Button(
+                onClick = { viewModel.registrarAtencion() },
+                enabled = !uiState.isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AzulClinico,
+                    contentColor = BlancoClinico
+                )
+            ) {
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
                         color = BlancoClinico,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Guardar y registrar examen",
+                        color = BlancoClinico,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+
+            // Opción alternativa: avanzar a Carga de Documentos independiente si se desea
+            TextButton(
+                onClick = onNextToDocumentUpload,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text(
+                    text = "Ir a pantalla de carga de documentos avanzada",
+                    color = AzulClinico,
+                    fontSize = 13.sp
+                )
             }
         }
     }

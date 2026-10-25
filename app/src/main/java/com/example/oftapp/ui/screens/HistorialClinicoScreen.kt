@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,27 +44,41 @@ import java.util.Locale
 fun HistorialClinicoScreen(
     initialPatientName: String? = null,
     viewModel: HistorialClinicoViewModel = viewModel(),
+    userRole: String = "Tecnólogo Médico",
     onSelectExam: (String) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var expandedDropdown by remember { mutableStateOf(false) }
+    val isPatient = userRole.equals("Paciente", ignoreCase = true)
 
-    // Pacientes frecuentes o de muestra
-    val listaPacientes = listOf(
-        "Juan Pérez",
-        "María López",
-        "Carlos Gómez",
-        "Ana Martínez",
-        "María González"
-    )
+    // Configura el rol y restricciones de privacidad en el ViewModel
+    LaunchedEffect(userRole) {
+        viewModel.setUserRole(userRole, "Juan Pérez")
+    }
 
-    // Si recibimos un parámetro de paciente inicial por navegación, aplicarlo
+    // Si recibimos un parámetro de paciente inicial por navegación, aplicarlo si no es paciente restringido
     LaunchedEffect(initialPatientName) {
-        if (!initialPatientName.isNullOrBlank()) {
+        if (!initialPatientName.isNullOrBlank() && !isPatient) {
             viewModel.selectPatient(initialPatientName)
+        }
+    }
+
+    val listState = rememberLazyListState()
+
+    // Detección de scroll para Lazy Loading por bloques sucesivos
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val totalItems = listState.layoutInfo.totalItemsCount
+            val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            totalItems > 0 && lastVisibleIndex >= totalItems - 2
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value && uiState.hasMoreItems && !uiState.isLoadingMore && !uiState.isLoading) {
+            viewModel.loadNextBlock()
         }
     }
 
@@ -80,7 +95,7 @@ fun HistorialClinicoScreen(
                             fontSize = 18.sp
                         )
                         Text(
-                            text = "Línea de Tiempo del Paciente",
+                            text = if (isPatient) "Mi Expediente Oftalmológico" else "Línea de Tiempo del Paciente",
                             color = BlancoClinico.copy(alpha = 0.85f),
                             fontSize = 12.sp
                         )
@@ -147,6 +162,7 @@ fun HistorialClinicoScreen(
         }
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
@@ -155,70 +171,84 @@ fun HistorialClinicoScreen(
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            // 1. Selector de Paciente (ExposedDropdownMenuBox)
+            // 1. Buscador dinámico de paciente (reemplaza al Dropdown)
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Paciente:",
+                        text = if (isPatient) "Paciente Identificado:" else "Buscar Paciente:",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = GrisAzulado,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
-                    ExposedDropdownMenuBox(
-                        expanded = expandedDropdown,
-                        onExpandedChange = { expandedDropdown = !expandedDropdown },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = uiState.selectedPatient.ifBlank { "Seleccionar paciente..." },
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = AzulClinico,
-                                unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedTextColor = TextoOscuro,
-                                unfocusedTextColor = TextoOscuro
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-                                .fillMaxWidth(),
-                            textStyle = LocalTextStyle.current.copy(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextoOscuro
-                            )
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expandedDropdown,
-                            onDismissRequest = { expandedDropdown = false },
-                            modifier = Modifier.background(Color.White)
-                        ) {
-                            listaPacientes.forEach { pacienteNombre ->
-                                DropdownMenuItem(
-                                    text = { Text(pacienteNombre, color = TextoOscuro) },
-                                    onClick = {
-                                        viewModel.selectPatient(pacienteNombre)
-                                        expandedDropdown = false
-                                    }
-                                )
+
+                    OutlinedTextField(
+                        value = if (isPatient) "Juan Pérez" else uiState.searchQuery,
+                        onValueChange = { newQuery ->
+                            if (!isPatient) {
+                                viewModel.onSearchQueryChange(newQuery)
                             }
-                        }
-                    }
+                        },
+                        placeholder = {
+                            Text(
+                                text = "Buscar por nombre (ej. Juan, María)...",
+                                color = GrisAzulado,
+                                fontSize = 14.sp
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Buscar paciente",
+                                tint = AzulClinico
+                            )
+                        },
+                        trailingIcon = {
+                            if (!isPatient && uiState.searchQuery.isNotBlank()) {
+                                IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Limpiar búsqueda",
+                                        tint = GrisAzulado
+                                    )
+                                }
+                            }
+                        },
+                        readOnly = isPatient,
+                        enabled = !isPatient,
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AzulClinico,
+                            unfocusedBorderColor = GrisAzulado.copy(alpha = 0.5f),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            disabledContainerColor = AzulClinico.copy(alpha = 0.05f),
+                            disabledTextColor = TextoOscuro,
+                            disabledBorderColor = AzulClinico.copy(alpha = 0.3f),
+                            focusedTextColor = TextoOscuro,
+                            unfocusedTextColor = TextoOscuro
+                        ),
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextoOscuro
+                        )
+                    )
                 }
             }
 
-            // 2. Tarjeta Resumen Responsiva con Modifier.fillMaxWidth()
+            // 2. Tarjeta Resumen Responsiva
             item {
-                val nombrePaciente = uiState.selectedPatient.ifBlank { "Paciente Seleccionado" }
+                val nombrePaciente = when {
+                    isPatient -> "Juan Pérez"
+                    uiState.selectedPatient.isNotBlank() -> uiState.selectedPatient
+                    uiState.searchQuery.isNotBlank() -> uiState.searchQuery
+                    else -> "Todos los Pacientes"
+                }
                 val inicial = nombrePaciente.take(1).uppercase()
-                val totalExams = uiState.patientExams.size
+                val totalExams = uiState.totalExamsCount
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -231,12 +261,10 @@ fun HistorialClinicoScreen(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
-                        // Fila superior adaptativa
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Avatar del paciente
                             Box(
                                 modifier = Modifier
                                     .size(46.dp)
@@ -254,7 +282,6 @@ fun HistorialClinicoScreen(
 
                             Spacer(modifier = Modifier.width(12.dp))
 
-                            // Nombre y subtítulo responsivos con weight
                             Column(
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -267,7 +294,7 @@ fun HistorialClinicoScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = "Ficha clínica vinculada",
+                                    text = if (isPatient) "Ficha personal exclusiva" else "Ficha clínica vinculada",
                                     fontSize = 12.sp,
                                     color = GrisAzulado
                                 )
@@ -275,7 +302,6 @@ fun HistorialClinicoScreen(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // Badge de conteo sin cortes
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
                                 color = AzulClinico,
@@ -296,7 +322,6 @@ fun HistorialClinicoScreen(
                             color = AzulClinico.copy(alpha = 0.15f)
                         )
 
-                        // Sección de información clínica base
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Seguimiento Oftalmológico:",
@@ -306,7 +331,7 @@ fun HistorialClinicoScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Historial evolutivo cronológico de exámenes y procedimientos registrados.",
+                                text = "Línea de tiempo con carga por bloques perezosos de exámenes clínicos.",
                                 color = TextoOscuro,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp
@@ -349,7 +374,7 @@ fun HistorialClinicoScreen(
                 }
             }
 
-            // 4. Contenido de la Línea de Tiempo (Timeline)
+            // 4. Contenido de la Línea de Tiempo con Lazy Loading por bloques
             if (uiState.isLoading) {
                 item {
                     Box(
@@ -376,7 +401,7 @@ fun HistorialClinicoScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No hay exámenes registrados en el historial de este paciente",
+                                text = "No se encontraron exámenes para el criterio seleccionado",
                                 color = GrisAzulado,
                                 fontSize = 13.sp
                             )
@@ -389,6 +414,46 @@ fun HistorialClinicoScreen(
                         exam = exam,
                         onClick = { onSelectExam(exam.id) }
                     )
+                }
+
+                // Elemento de carga perezosa al pie del LazyColumn
+                if (uiState.isLoadingMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = AzulClinico,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    }
+                } else if (uiState.hasMoreItems) {
+                    item {
+                        OutlinedButton(
+                            onClick = { viewModel.loadNextBlock() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.4f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AzulClinico)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Cargar más exámenes (${uiState.patientExams.size} de ${uiState.totalExamsCount})",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
 

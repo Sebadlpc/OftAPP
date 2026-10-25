@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Person
@@ -17,41 +19,75 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.oftapp.data.repository.OftAppRepository
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
 import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
+import com.example.oftapp.ui.theme.VerdeSalud
+import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     userRole: String = "Tecnólogo Médico",
+    repository: OftAppRepository? = null,
     onLogout: () -> Unit = {},
     onNavigateToHome: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {}
 ) {
+    val isPatient = userRole.equals("Paciente", ignoreCase = true)
+
+    // Datos personales diferenciados
     val nombreUsuario = when {
+        isPatient -> "Juan Pérez"
         userRole.contains("Médico", ignoreCase = true) -> "Dra. Carla Ruiz"
         userRole.contains("Tecnólogo", ignoreCase = true) -> "Lic. Andrés Gómez"
         userRole.contains("Admin", ignoreCase = true) -> "Carlos Vega (Administrador)"
-        else -> "Juan Pérez (Paciente)"
+        else -> "Usuario OftApp"
     }
 
-    val emailFicticio = when {
+    val emailUsuario = when {
+        isPatient -> "juan.perez@email.com"
         userRole.contains("Médico", ignoreCase = true) -> "carla.ruiz@oftapp.cl"
         userRole.contains("Tecnólogo", ignoreCase = true) -> "andres.gomez@oftapp.cl"
         userRole.contains("Admin", ignoreCase = true) -> "admin@oftapp.cl"
-        else -> "paciente.juan@gmail.com"
+        else -> "usuario@oftapp.cl"
+    }
+
+    // Observar exámenes para conteo en tiempo real
+    val allExams by (repository?.getAllExams() ?: flowOf(emptyList())).collectAsState(initial = emptyList())
+
+    val personalExams = remember(allExams, isPatient) {
+        if (isPatient) {
+            allExams.filter {
+                it.patientName.equals("Juan Pérez", ignoreCase = true) ||
+                        it.patientName.contains("Juan", ignoreCase = true)
+            }
+        } else {
+            allExams
+        }
+    }
+
+    val personalCount = personalExams.size
+    val personalValidatedCount = personalExams.count {
+        it.status.equals("Validado", ignoreCase = true) ||
+                it.status.equals("Completado", ignoreCase = true)
+    }
+    val personalPendingCount = personalExams.count {
+        it.status.equals("Pendiente", ignoreCase = true) ||
+                it.status.equals("En Proceso", ignoreCase = true)
     }
 
     Scaffold(
@@ -124,9 +160,9 @@ fun PerfilScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Avatar circular de usuario
             Box(
@@ -167,7 +203,95 @@ fun PerfilScreen(
                 }
             }
 
-            // Tarjeta de Información Detallada
+            // TARJETA DE CONTEO DE EXÁMENES (Diferenciada según Rol)
+            if (isPatient) {
+                // Conteo exclusivo de sus exámenes personales para el paciente
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = AzulClinico.copy(alpha = 0.08f)),
+                    border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Mis Exámenes Clínicos Personales",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AzulClinico
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            PerfilMetricaItem(
+                                valor = "$personalCount",
+                                label = "Total Exámenes",
+                                color = AzulClinico
+                            )
+                            PerfilMetricaItem(
+                                valor = "$personalValidatedCount",
+                                label = "Validados",
+                                color = VerdeSalud
+                            )
+                            PerfilMetricaItem(
+                                valor = "$personalPendingCount",
+                                label = "Pendientes",
+                                color = GrisAzulado
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Indicador de acceso global para roles facultativos
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = AzulClinico.copy(alpha = 0.08f)),
+                    border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.25f)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Acceso Clínico Facultativo Global",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AzulClinico
+                            )
+                            Text(
+                                text = "Acceso a todos los pacientes y fichas",
+                                fontSize = 12.sp,
+                                color = GrisAzulado
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = AzulClinico
+                        ) {
+                            Text(
+                                text = "${allExams.size} exámenes",
+                                color = BlancoClinico,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Tarjeta de Información Detallada del Usuario / Paciente
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = BlancoClinico),
@@ -181,7 +305,7 @@ fun PerfilScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "Información de la Cuenta",
+                        text = if (isPatient) "Datos Personales del Paciente" else "Información de la Cuenta Profesional",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = AzulClinico
@@ -195,10 +319,23 @@ fun PerfilScreen(
                         valor = nombreUsuario
                     )
 
+                    if (isPatient) {
+                        PerfilDatoItem(
+                            icon = Icons.Default.Badge,
+                            label = "RUT",
+                            valor = "12.345.678-9"
+                        )
+                        PerfilDatoItem(
+                            icon = Icons.Default.Call,
+                            label = "Teléfono de Contacto",
+                            valor = "+56 9 1234 5678"
+                        )
+                    }
+
                     PerfilDatoItem(
                         icon = Icons.Default.Email,
                         label = "Correo Electrónico",
-                        valor = emailFicticio
+                        valor = emailUsuario
                     )
 
                     PerfilDatoItem(
@@ -209,7 +346,7 @@ fun PerfilScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Botón destacado de Cerrar Sesión
             Button(
@@ -238,6 +375,27 @@ fun PerfilScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
         }
+    }
+}
+
+@Composable
+private fun PerfilMetricaItem(
+    valor: String,
+    label: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = valor,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = GrisAzulado
+        )
     }
 }
 

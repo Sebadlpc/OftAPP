@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel para la pantalla de inicio de sesión.
  *
- * Valida credenciales según el rol predeterminado y gestiona el estado de autenticación.
+ * Valida credenciales según el rol predeterminado y gestiona el estado de autenticación y asignación de rol.
  */
 class LoginViewModel(
     private val repository: OftAppRepository? = null
@@ -59,16 +59,27 @@ class LoginViewModel(
                 currentEmail.equals("Medico", ignoreCase = true) ||
                         currentEmail.equals("Médico", ignoreCase = true) -> "Médico Oftalmólogo"
                 currentEmail.equals("Admin", ignoreCase = true) -> "Personal Administrativo"
-                currentEmail.equals("Paciente", ignoreCase = true) -> "Paciente"
+                currentEmail.equals("Paciente", ignoreCase = true) ||
+                        currentEmail.equals("Juan Pérez", ignoreCase = true) ||
+                        currentEmail.equals("Juan", ignoreCase = true) -> "Paciente"
                 else -> null
             }
 
             if (assignedRole != null && currentPassword == "1234") {
+                val assignedUserName = when (assignedRole) {
+                    "Paciente" -> "Juan Pérez"
+                    "Médico Oftalmólogo" -> "Dra. Carla Ruiz"
+                    "Tecnólogo Médico" -> "Lic. Andrés Gómez"
+                    "Personal Administrativo" -> "Carlos Vega"
+                    else -> currentEmail
+                }
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         isAuthenticated = true,
                         selectedRole = assignedRole,
+                        userName = assignedUserName,
                         errorMessage = null
                     )
                 }

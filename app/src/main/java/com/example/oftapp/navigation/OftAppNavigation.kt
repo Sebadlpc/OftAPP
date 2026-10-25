@@ -36,7 +36,7 @@ import com.example.oftapp.ui.viewmodel.RegistroAtencionViewModel
  *
  * Configura las rutas del sistema, la instanciación de dependencias mediante [AppViewModelFactory],
  * la inyección de ViewModels reactivos con Room ([AppDatabase] y [OftAppRepositoryImpl]),
- * la transferencia de parámetros de navegación (como examId y patientName) y la pestaña de Perfil.
+ * la transferencia de parámetros de navegación (como examId y patientName) y control de acceso por rol.
  */
 @Composable
 fun OftAppNavigation() {
@@ -80,7 +80,7 @@ fun OftAppNavigation() {
             )
         }
 
-        // 3. Formulario de Registro de Atención Médica
+        // 3. Formulario de Registro de Atención Médica (Flujo directo hacia Carga de Documentos)
         composable("registro") {
             val registroViewModel: RegistroAtencionViewModel = viewModel(factory = factory)
             RegistroAtencionScreen(
@@ -105,6 +105,7 @@ fun OftAppNavigation() {
             val examId = backStackEntry.arguments?.getString("examId") ?: ""
             CargaDocumentosScreen(
                 examId = examId,
+                repository = repository,
                 onFinishUpload = {
                     navController.navigate("dashboard") {
                         popUpTo("dashboard") { inclusive = false }
@@ -117,6 +118,7 @@ fun OftAppNavigation() {
         composable("carga_documentos") {
             CargaDocumentosScreen(
                 examId = null,
+                repository = repository,
                 onFinishUpload = {
                     navController.navigate("dashboard") {
                         popUpTo("dashboard") { inclusive = false }
@@ -125,11 +127,12 @@ fun OftAppNavigation() {
             )
         }
 
-        // 5. Pantalla de Listado y Búsqueda de Exámenes con Filtros
+        // 5. Pantalla de Listado y Búsqueda de Exámenes con Filtros y Restricción por Rol
         composable("listado") {
             val listadoViewModel: ListadoBusquedaViewModel = viewModel(factory = factory)
             ListadoBusquedaScreen(
                 viewModel = listadoViewModel,
+                userRole = currentRole,
                 onExamSelected = { examId ->
                     navController.navigate("detalle/$examId")
                 },
@@ -148,7 +151,7 @@ fun OftAppNavigation() {
             )
         }
 
-        // 6. Detalle del Examen Clínico con Parámetro examId
+        // 6. Detalle del Examen Clínico con Parámetro examId y acciones de previsualización y descarga
         composable(
             route = "detalle/{examId}",
             arguments = listOf(
@@ -171,7 +174,7 @@ fun OftAppNavigation() {
             )
         }
 
-        // 7. Historial Clínico y Línea de Tiempo con Parámetro Opcional patientName
+        // 7. Historial Clínico y Línea de Tiempo con Buscador Dinámico y Carga Perezosa
         composable(
             route = "historial?patientName={patientName}",
             arguments = listOf(
@@ -187,6 +190,7 @@ fun OftAppNavigation() {
             HistorialClinicoScreen(
                 initialPatientName = patientName,
                 viewModel = historialViewModel,
+                userRole = currentRole,
                 onSelectExam = { examId ->
                     navController.navigate("detalle/$examId")
                 },
@@ -204,11 +208,12 @@ fun OftAppNavigation() {
             )
         }
 
-        // 8. Pantalla de Perfil de Usuario y Cierre de Sesión
+        // 8. Pantalla de Perfil de Usuario con Conteo Exclusivo y Cierre de Sesión
         composable("perfil") {
             val loginViewModel: LoginViewModel = viewModel(factory = factory)
             PerfilScreen(
                 userRole = currentRole,
+                repository = repository,
                 onLogout = {
                     loginViewModel.logout()
                     navController.navigate("login") {

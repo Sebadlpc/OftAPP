@@ -9,13 +9,25 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+
+/**
+ * Criterios combinados para búsqueda y filtrado de exámenes con soporte de control de acceso por rol.
+ */
+private data class RoleSearchCriteria(
+    val query: String,
+    val filter: String,
+    val role: String,
+    val patient: String
+)
 
 /**
  * ViewModel para el listado y búsqueda reactiva de exámenes médicos.
  *
- * Maneja la combinación reactiva de consultas de texto y filtros dinámicos (tipo de examen,
- * estado o sede) sobre la fuente de datos Room.
+ * Aplica reglas de privacidad: si el usuario autenticado tiene el rol "Paciente",
+ * restringe los resultados de búsqueda exclusivamente a sus propios exámenes personales.
+ * Para los roles facultativos ("Médico", "Tecnólogo", "Admin") mantiene acceso global.
  */
 class ListadoBusquedaViewModel(
     private val repository: OftAppRepository
@@ -23,51 +35,75 @@ class ListadoBusquedaViewModel(
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedFilter = MutableStateFlow("Todos")
+    private val _userRole = MutableStateFlow("Tecnólogo Médico")
+    private val _patientName = MutableStateFlow("Juan Pérez")
+
+    /**
+     * Establece el rol y el paciente para aplicar la restricción de visibilidad.
+     */
+    fun setUserRole(role: String, patientName: String = "Juan Pérez") {
+        _userRole.value = role
+        _patientName.value = patientName
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val uiState: StateFlow<ListadoUiState> = _searchQuery
-        .flatMapLatest { query ->
-            repository.searchExams(query)
-        }
-        .combine(_selectedFilter) { exams, filter ->
-            val filteredExams = when {
-                filter.equals("Todos", ignoreCase = true) || filter.isBlank() -> {
-                    exams
+    val uiState: StateFlow<ListadoUiState> = combine(
+        _searchQuery,
+        _selectedFilter,
+        _userRole,
+        _patientName
+    ) { query, filter, role, patient ->
+        RoleSearchCriteria(query, filter, role, patient)
+    }.flatMapLatest { criteria ->
+        repository.searchExams(criteria.query).map { exams ->
+            // Restricción por rol de usuario
+            val roleFilteredExams = if (criteria.role.equals("Paciente", ignoreCase = true)) {
+                exams.filter {
+                    it.patientName.equals(criteria.patient, ignoreCase = true) ||
+                            it.patientName.contains("Juan", ignoreCase = true)
                 }
-                filter.equals("Pendientes", ignoreCase = true) -> {
-                    exams.filter {
+            } else {
+                exams
+            }
+
+            val filteredExams = when {
+                criteria.filter.equals("Todos", ignoreCase = true) || criteria.filter.isBlank() -> {
+                    roleFilteredExams
+                }
+                criteria.filter.equals("Pendientes", ignoreCase = true) -> {
+                    roleFilteredExams.filter {
                         it.status.equals("Pendiente", ignoreCase = true) ||
                                 it.status.equals("En Proceso", ignoreCase = true) ||
                                 it.status.equals("Pendientes", ignoreCase = true)
                     }
                 }
-                filter.equals("Validados", ignoreCase = true) -> {
-                    exams.filter {
+                criteria.filter.equals("Validados", ignoreCase = true) -> {
+                    roleFilteredExams.filter {
                         it.status.equals("Validado", ignoreCase = true) ||
                                 it.status.equals("Completado", ignoreCase = true) ||
                                 it.status.equals("Validados", ignoreCase = true)
                     }
                 }
                 else -> {
-                    exams.filter { exam ->
-                        exam.examType.equals(filter, ignoreCase = true) ||
-                                exam.status.equals(filter, ignoreCase = true) ||
-                                exam.branch.contains(filter, ignoreCase = true)
+                    roleFilteredExams.filter { exam ->
+                        exam.examType.equals(criteria.filter, ignoreCase = true) ||
+                                exam.status.equals(criteria.filter, ignoreCase = true) ||
+                                exam.branch.contains(criteria.filter, ignoreCase = true)
                     }
                 }
             }
             ListadoUiState(
-                searchQuery = _searchQuery.value,
-                selectedFilter = filter,
+                searchQuery = criteria.query,
+                selectedFilter = criteria.filter,
                 exams = filteredExams,
                 isLoading = false
             )
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ListadoUiState(isLoading = true)
-        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ListadoUiState(isLoading = true)
+    )
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query

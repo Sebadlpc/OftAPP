@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -52,6 +53,11 @@ fun DashboardScreen(
     onNavigateToDetail: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isPatient = userRole.equals("Paciente", ignoreCase = true)
+
+    LaunchedEffect(userRole) {
+        viewModel.setUserRole(userRole, "Juan Pérez")
+    }
 
     Scaffold(
         containerColor = BlancoClinico,
@@ -64,13 +70,16 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToRegister,
-                containerColor = AzulClinico,
-                contentColor = BlancoClinico,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Registrar nuevo examen")
+            // El botón de registro rápido es exclusivo de personal facultativo/clínico
+            if (!isPatient) {
+                FloatingActionButton(
+                    onClick = onNavigateToRegister,
+                    containerColor = AzulClinico,
+                    contentColor = BlancoClinico,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Registrar nuevo examen")
+                }
             }
         },
         bottomBar = {
@@ -133,7 +142,7 @@ fun DashboardScreen(
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
 
-            // 1. Welcome Banner
+            // 1. Welcome Banner adaptado al rol y usuario
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -146,12 +155,17 @@ fun DashboardScreen(
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text("Bienvenido/a,", fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
                         Text(
-                            text = if (userRole.contains("Médico", ignoreCase = true)) "Dra. Carla Ruiz" else "Tecnólogo OftApp",
+                            text = when {
+                                userRole.contains("Médico", ignoreCase = true) -> "Dra. Carla Ruiz"
+                                userRole.contains("Tecnólogo", ignoreCase = true) -> "Lic. Andrés Gómez"
+                                userRole.contains("Admin", ignoreCase = true) -> "Carlos Vega"
+                                else -> "Juan Pérez"
+                            },
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$userRole · Sede Central",
+                            text = if (isPatient) "Portal Paciente · Mis Atenciones" else "$userRole · Sede Central",
                             fontSize = 12.sp,
                             modifier = Modifier.padding(top = 4.dp),
                             color = BlancoClinico.copy(alpha = 0.85f)
@@ -163,7 +177,7 @@ fun DashboardScreen(
             // 2. Resumen de Métricas (Totales, Pendientes, Validados)
             item {
                 Text(
-                    text = "Resumen de exámenes",
+                    text = if (isPatient) "Mis exámenes registrados" else "Resumen general de exámenes",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
                     color = AzulClinico,
@@ -177,7 +191,7 @@ fun DashboardScreen(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Assessment,
                         value = uiState.totalCount,
-                        label = "Totales",
+                        label = if (isPatient) "Mis Totales" else "Totales",
                         iconColor = AzulClinico,
                         bgColor = AzulClinico.copy(alpha = 0.12f)
                     )
@@ -208,7 +222,7 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Exámenes recientes",
+                        text = if (isPatient) "Mis atenciones recientes" else "Exámenes recientes",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 16.sp,
                         color = AzulClinico
@@ -249,7 +263,7 @@ fun DashboardScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No hay exámenes registrados recientemente",
+                                text = if (isPatient) "No tienes exámenes registrados actualmente" else "No hay exámenes registrados recientemente",
                                 color = GrisAzulado,
                                 fontSize = 14.sp
                             )
@@ -266,7 +280,7 @@ fun DashboardScreen(
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(80.dp)) } // Espacio para el FAB
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }

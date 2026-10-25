@@ -1,6 +1,6 @@
 package com.example.oftapp.ui.screens
 
-import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,10 +11,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,6 +36,7 @@ import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
 import com.example.oftapp.ui.viewmodel.DetalleExamenViewModel
+import com.example.oftapp.util.DocumentUtils
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -128,7 +131,7 @@ fun DetalleExamenScreen(
                 // Tarjeta 1: Ficha Clínica Completa
                 InfoExamenCard(exam = exam)
 
-                // Tarjeta 2: Archivo Adjunto y Enlace / URI
+                // Tarjeta 2: Archivo Adjunto con Botones Explícitos de Acción (Previsualizar y Descargar PDF)
                 ArchivoAdjuntoCard(exam = exam)
 
                 // Tarjeta 3: Observaciones Clínicas
@@ -214,7 +217,6 @@ private fun InfoExamenCard(exam: ExamEntity) {
                     color = TextoOscuro
                 )
 
-                // Insignia de estado
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = statusBg
@@ -279,12 +281,17 @@ private fun InfoExamenCard(exam: ExamEntity) {
     }
 }
 
+/**
+ * Tarjeta de visualización y descarga de documentos con botones explícitos:
+ * 1. "Previsualizar PDF/Documento": Lanza Intent(Intent.ACTION_VIEW) con el visor del sistema.
+ * 2. "Descargar PDF": Guarda una copia en la carpeta pública de descargas (Downloads).
+ */
 @Composable
 private fun ArchivoAdjuntoCard(exam: ExamEntity) {
     val context = LocalContext.current
     val hasUri = exam.fileUri != null
     val fileName = exam.fileUri?.lastPathSegment ?: "informe_clinico_${exam.id}.pdf"
-    val fileUriString = exam.fileUri?.toString() ?: "URI no registrada"
+    val fileUriString = exam.fileUri?.toString() ?: "Generación digital en tiempo real"
 
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -292,23 +299,27 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
         colors = CardDefaults.outlinedCardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.25f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Text(
                 text = "Archivo o informe adjunto",
                 fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextoOscuro,
-                modifier = Modifier.padding(bottom = 12.dp)
+                fontWeight = FontWeight.Bold,
+                color = TextoOscuro
             )
 
+            // Fila descriptiva del archivo
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ícono PDF o Documento
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(46.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(RojoAlerta.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
@@ -316,7 +327,8 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
                     Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = "Documento",
-                        tint = RojoAlerta
+                        tint = RojoAlerta,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
 
@@ -325,36 +337,90 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = fileName,
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextoOscuro
+                        color = TextoOscuro,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (hasUri) fileUriString else "Sin archivo físico asociado",
-                        fontSize = 12.sp,
+                        text = if (hasUri) fileUriString else "PDF clínico listo para previsualizar / descargar",
+                        fontSize = 11.sp,
                         color = GrisAzulado,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            HorizontalDivider(color = GrisAzulado.copy(alpha = 0.15f))
+
+            // Botones de acción explícitos
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Botón 1: Previsualizar PDF/Documento (Intent.ACTION_VIEW)
+                OutlinedButton(
+                    onClick = {
+                        DocumentUtils.previewDocument(context, exam)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AzulClinico),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = AzulClinico
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "Previsualizar",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Previsualizar PDF",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                if (hasUri) {
-                    IconButton(onClick = {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = exam.fileUri
-                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                            }
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // En caso de que no haya visor asociado en el dispositivo
+                // Botón 2: Descargar PDF (Guarda en la carpeta pública Downloads)
+                Button(
+                    onClick = {
+                        DocumentUtils.downloadDocument(context, exam) { resultado ->
+                            Toast.makeText(context, resultado, Toast.LENGTH_LONG).show()
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = "Abrir documento",
-                            tint = AzulClinico
-                        )
-                    }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AzulClinico,
+                        contentColor = BlancoClinico
+                    ),
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = "Descargar",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Descargar PDF",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }

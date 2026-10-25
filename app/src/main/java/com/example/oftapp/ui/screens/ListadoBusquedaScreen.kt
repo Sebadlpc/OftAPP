@@ -17,7 +17,6 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,6 +42,7 @@ import java.util.Locale
 @Composable
 fun ListadoBusquedaScreen(
     viewModel: ListadoBusquedaViewModel = viewModel(),
+    userRole: String = "Tecnólogo Médico",
     onExamSelected: (String) -> Unit,
     onNavigateBack: () -> Unit = {},
     onNavigateToHome: () -> Unit = {},
@@ -51,8 +51,13 @@ fun ListadoBusquedaScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val filterOptions = listOf("Todos", "Pendientes", "Validados")
+    val isPatient = userRole.equals("Paciente", ignoreCase = true)
 
-    // Estado local síncrono para eliminar el bug de duplicación de letras y salto de cursor
+    // Configura la restricción de rol en el ViewModel
+    LaunchedEffect(userRole) {
+        viewModel.setUserRole(userRole, "Juan Pérez")
+    }
+
     var localQuery by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
@@ -60,12 +65,21 @@ fun ListadoBusquedaScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Listado de exámenes",
-                        color = BlancoClinico,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = if (isPatient) "Mis Exámenes" else "Listado de exámenes",
+                            color = BlancoClinico,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (isPatient) {
+                            Text(
+                                text = "Expediente personal de Juan Pérez",
+                                color = BlancoClinico.copy(alpha = 0.85f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -147,7 +161,7 @@ fun ListadoBusquedaScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Campo de búsqueda con estado local síncrono que delega a onSearchQueryChanged
+            // Campo de búsqueda adaptado al contexto
             OutlinedTextField(
                 value = localQuery,
                 onValueChange = { newQuery ->
@@ -157,7 +171,7 @@ fun ListadoBusquedaScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        text = "Buscar por paciente, examen, sede o ID...",
+                        text = if (isPatient) "Buscar en mis exámenes (procedimiento, ojo, ID)..." else "Buscar por paciente, examen, sede o ID...",
                         color = GrisAzulado
                     )
                 },
@@ -250,7 +264,7 @@ fun ListadoBusquedaScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No se encontraron exámenes para el criterio seleccionado",
+                        text = if (isPatient) "No tienes exámenes registrados con ese criterio" else "No se encontraron exámenes para el criterio seleccionado",
                         color = GrisAzulado,
                         style = MaterialTheme.typography.bodyLarge
                     )

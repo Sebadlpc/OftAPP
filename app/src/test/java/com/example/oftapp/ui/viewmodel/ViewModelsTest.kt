@@ -44,6 +44,7 @@ class ViewModelsTest {
 
     @Test
     fun dashboardViewModel_loadsDataAndCalculatesMetrics() = runBlocking {
+        fakeRepository.seedDatabaseIfNeeded()
         val viewModel = DashboardViewModel(fakeRepository)
         viewModel.loadDashboardData()
 
@@ -77,6 +78,22 @@ class ViewModelsTest {
         assertEquals(1, fakeRepository.consultasFlow.value.size)
         assertEquals(1, fakeRepository.examsFlow.value.size)
         assertEquals("PAT-999", fakeRepository.examsFlow.value.first().patientName)
+    }
+
+    @Test
+    fun registroAtencionViewModel_supportsBifocalEyeSelection() = runBlocking {
+        val viewModel = RegistroAtencionViewModel(fakeRepository)
+
+        viewModel.onPatientIdChange("PAC-BIFOCAL-01")
+        viewModel.onBranchChange("Sede Las Condes")
+        viewModel.onExamTypeChange("Campimetría")
+        viewModel.onEyeChange("Bifocal")
+
+        viewModel.registrarAtencion("Dra. Morales", "Evaluación visual bifocal")
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isSuccess)
+        assertEquals("Bifocal", fakeRepository.examsFlow.value.first().eye)
     }
 
     @Test
@@ -123,6 +140,70 @@ class ViewModelsTest {
     }
 
     @Test
+    fun historialClinicoViewModel_dynamicSearchAndLazyLoading() = runBlocking {
+        fakeRepository.seedDatabaseIfNeeded()
+        val viewModel = HistorialClinicoViewModel(fakeRepository)
+
+        // Búsqueda dinámica reactiva
+        viewModel.onSearchQueryChange("María")
+        val searchState = viewModel.uiState.first { it.searchQuery == "María" && !it.isLoading }
+        assertEquals(1, searchState.patientExams.size)
+        assertEquals("María González", searchState.patientExams.first().patientName)
+
+        // Limpiar búsqueda
+        viewModel.onSearchQueryChange("")
+        val allState = viewModel.uiState.first { it.searchQuery == "" && !it.isLoading }
+        assertTrue(allState.patientExams.isNotEmpty())
+    }
+
+    @Test
+    fun rolePrivacyRestriction_pacienteCanOnlyViewOwnExams() = runBlocking {
+        fakeRepository.seedDatabaseIfNeeded()
+
+        // 1. Dashboard: Paciente solo ve sus exámenes (Juan Pérez tiene 1 en fakeRepository)
+        val dashboardVm = DashboardViewModel(fakeRepository)
+        dashboardVm.setUserRole("Paciente", "Juan Pérez")
+        val dashState = dashboardVm.uiState.first { !it.isLoading && it.totalCount == 1 }
+        assertEquals(1, dashState.totalCount)
+        assertEquals("Juan Pérez", dashState.recentExams.first().patientName)
+
+        // 2. Listado: Paciente no puede ver exámenes de María González
+        val listadoVm = ListadoBusquedaViewModel(fakeRepository)
+        listadoVm.setUserRole("Paciente", "Juan Pérez")
+        listadoVm.onSearchQueryChanged("María")
+        val listadoState = listadoVm.uiState.first { it.searchQuery == "María" }
+        assertEquals(0, listadoState.exams.size)
+
+        // 3. Historial: Paciente restringido a su propia ficha
+        val historialVm = HistorialClinicoViewModel(fakeRepository)
+        historialVm.setUserRole("Paciente", "Juan Pérez")
+        val histState = historialVm.uiState.first { !it.isLoading }
+        assertTrue(histState.isRestrictedToPatient)
+        assertEquals("Juan Pérez", histState.selectedPatient)
+        assertEquals(1, histState.patientExams.size)
+        assertEquals("Juan Pérez", histState.patientExams.first().patientName)
+    }
+
+    @Test
+    fun rolePrivacyRestriction_staffHasGlobalAccess() = runBlocking {
+        fakeRepository.seedDatabaseIfNeeded()
+
+        // Dashboard como Médico: ve todos los 2 exámenes globales
+        val dashboardVm = DashboardViewModel(fakeRepository)
+        dashboardVm.setUserRole("Médico Oftalmólogo")
+        val dashState = dashboardVm.uiState.first { !it.isLoading && it.totalCount == 2 }
+        assertEquals(2, dashState.totalCount)
+
+        // Listado como Tecnólogo: puede buscar María y Juan
+        val listadoVm = ListadoBusquedaViewModel(fakeRepository)
+        listadoVm.setUserRole("Tecnólogo Médico")
+        listadoVm.onSearchQueryChanged("María")
+        val stateMaria = listadoVm.uiState.first { it.searchQuery == "María" && it.exams.isNotEmpty() }
+        assertEquals(1, stateMaria.exams.size)
+        assertEquals("María González", stateMaria.exams.first().patientName)
+    }
+
+    @Test
     fun loginViewModel_handlesAuthenticationFlow() = runBlocking {
         val viewModel = LoginViewModel(fakeRepository)
 
@@ -151,6 +232,14 @@ class ViewModelsTest {
         val stateTecnologo = viewModel.uiState.value
         assertTrue(stateTecnologo.isAuthenticated)
         assertEquals("Tecnólogo Médico", stateTecnologo.selectedRole)
+
+        // Autenticación como Paciente con credenciales ("Paciente" / "1234")
+        viewModel.onEmailChange("Paciente")
+        viewModel.login("1234")
+        val statePaciente = viewModel.uiState.value
+        assertTrue(statePaciente.isAuthenticated)
+        assertEquals("Paciente", statePaciente.selectedRole)
+        assertEquals("Juan Pérez", statePaciente.userName)
     }
 
     // --- Fake Repository ---

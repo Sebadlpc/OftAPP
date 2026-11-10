@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -83,7 +84,9 @@ fun LoginScreen(
                 onValueChange = { viewModel.onEmailChange(it) },
                 label = { Text("Usuario (Tecnologo / Medico / Admin / Paciente)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("usuario"),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AzulClinico,
@@ -105,7 +108,9 @@ fun LoginScreen(
                 label = { Text("Contraseña (1234)") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("clave"),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AzulClinico,
@@ -125,7 +130,9 @@ fun LoginScreen(
                     text = uiState.errorMessage ?: "",
                     color = RojoAlerta,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.align(Alignment.Start)
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .testTag("mensajeError")
                 )
             }
 
@@ -143,6 +150,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
+                    .testTag("botonLogin")
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(

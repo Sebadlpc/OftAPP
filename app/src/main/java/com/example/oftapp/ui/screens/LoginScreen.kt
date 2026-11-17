@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.testTag
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
@@ -83,7 +84,7 @@ fun LoginScreen(
                 onValueChange = { viewModel.onEmailChange(it) },
                 label = { Text("Usuario (Tecnologo / Medico / Admin / Paciente)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("Usuario"),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AzulClinico,
@@ -105,7 +106,7 @@ fun LoginScreen(
                 label = { Text("Contraseña (1234)") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag("Contraseña"),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AzulClinico,

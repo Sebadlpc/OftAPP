@@ -242,6 +242,21 @@ class ViewModelsTest {
         assertEquals("Juan Pérez", statePaciente.userName)
     }
 
+    @Test
+    fun loginViewModel_insforgeInputAndValidation() = runBlocking {
+        val viewModel = LoginViewModel(fakeRepository)
+
+        viewModel.onEmailChange("doctor@oftapp.cl")
+        viewModel.onPasswordChange("SuperSecretPassword")
+        assertEquals("doctor@oftapp.cl", viewModel.uiState.value.email)
+        assertEquals("SuperSecretPassword", viewModel.uiState.value.password)
+
+        viewModel.onPasswordChange("")
+        viewModel.loginWithInsforge()
+        assertFalse(viewModel.uiState.value.isAuthenticated)
+        assertEquals("Por favor, ingrese correo y contraseña", viewModel.uiState.value.errorMessage)
+    }
+
     // --- Fake Repository ---
 
     private class FakeOftAppRepository : OftAppRepository {

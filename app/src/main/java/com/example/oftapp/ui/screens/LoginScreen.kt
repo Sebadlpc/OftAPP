@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -106,7 +107,9 @@ fun LoginScreen(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("Usuario"),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AzulClinico,
@@ -152,7 +155,9 @@ fun LoginScreen(
                         viewModel.loginWithInsforge()
                     }
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("Contraseña"),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AzulClinico,

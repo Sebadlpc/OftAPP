@@ -8,3 +8,10 @@
 # Credenciales de Insforge (Backend as a Service)
 INSFORGE_BASE_URL=
 INSFORGE_ANON_KEY=
+
+# Configuración de Firma Digital para Builds de Producción (Release Signing)
+# NOTA: Opcional para desarrollo local. Requerido para generar APK / AAB de Release firmado.
+RELEASE_STORE_FILE=release-keystore.jks
+RELEASE_STORE_PASSWORD=tu_password_keystore
+RELEASE_KEY_ALIAS=oftapp_release
+RELEASE_KEY_PASSWORD=tu_password_alias

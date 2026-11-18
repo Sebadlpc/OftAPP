@@ -13,4 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+/local.properties
 .idea/
+
+# Keystores y llaves criptográficas de firma
+*.jks
+*.keystore
+*.key
+*.pem

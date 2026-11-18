@@ -32,10 +32,35 @@ android {
         buildConfigField("String", "INSFORGE_ANON_KEY", "\"${localProperties.getProperty("INSFORGE_ANON_KEY", "")}\"")
     }
 
+    signingConfigs {
+        create("release") {
+            val storeFilePath = localProperties.getProperty("RELEASE_STORE_FILE")
+            if (!storeFilePath.isNullOrBlank()) {
+                val keystoreFile = file(storeFilePath).let {
+                    if (it.isAbsolute) it else rootProject.file(storeFilePath)
+                }
+                if (keystoreFile.exists()) {
+                    storeFile = keystoreFile
+                    storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                    keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                    keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
-            optimization {
-                enable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
+            val releaseConfig = signingConfigs.getByName("release")
+            if (releaseConfig.storeFile?.exists() == true) {
+                signingConfig = releaseConfig
             }
         }
     }

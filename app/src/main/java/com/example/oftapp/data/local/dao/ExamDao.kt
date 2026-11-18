@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.oftapp.data.local.entity.ExamEntity
 import kotlinx.coroutines.flow.Flow
+import java.util.Date
 
 @Dao
 interface ExamDao {
@@ -36,6 +37,23 @@ interface ExamDao {
 
     @Query("SELECT * FROM exams WHERE consultaId = :consultaId ORDER BY date DESC")
     fun getExamsByConsultaId(consultaId: String): Flow<List<ExamEntity>>
+
+    @Query("SELECT * FROM exams WHERE syncStatus = 'PENDIENTE' ORDER BY date ASC")
+    suspend fun getPendingExams(): List<ExamEntity>
+
+    @Query("SELECT * FROM exams WHERE syncStatus = 'PENDIENTE' ORDER BY date ASC")
+    fun getPendingExamsFlow(): Flow<List<ExamEntity>>
+
+    @Query("SELECT COUNT(*) FROM exams WHERE syncStatus = 'PENDIENTE'")
+    fun getPendingExamsCountFlow(): Flow<Int>
+
+    @Query("UPDATE exams SET syncStatus = :syncStatus, remoteId = :remoteId, lastSyncedAt = :syncedAt WHERE id = :localId")
+    suspend fun updateSyncStatus(
+        localId: String,
+        syncStatus: String,
+        remoteId: Long?,
+        syncedAt: Date?
+    ): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExam(exam: ExamEntity): Long

@@ -44,9 +44,10 @@ fun OftAppNavigation() {
     var currentRole by rememberSaveable { mutableStateOf("Tecnólogo Médico") }
 
     val context = LocalContext.current
+    val sessionManager = remember { com.example.oftapp.data.local.security.EncryptedSessionManager.getInstance(context) }
     val database = remember { AppDatabase.getDatabase(context) }
-    val repository = remember { OftAppRepositoryImpl.fromDatabase(database) }
-    val factory = remember { AppViewModelFactory(repository) }
+    val repository = remember { OftAppRepositoryImpl.fromDatabase(database, context) }
+    val factory = remember { AppViewModelFactory(repository = repository, sessionManager = sessionManager) }
 
     NavHost(
         navController = navController,

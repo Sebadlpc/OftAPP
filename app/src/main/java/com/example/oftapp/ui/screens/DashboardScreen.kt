@@ -12,7 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CheckCircleOutline
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -22,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,9 +42,11 @@ import com.example.oftapp.data.local.entity.ExamEntity
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
 import com.example.oftapp.ui.theme.GrisAzulado
+import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
 import com.example.oftapp.ui.viewmodel.DashboardViewModel
+import com.example.oftapp.ui.viewmodel.FhirObservationDisplayItem
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -54,13 +63,28 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isPatient = userRole.equals("Paciente", ignoreCase = true)
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(userRole) {
         viewModel.setUserRole(userRole, "Juan Pérez")
     }
 
+    // Feedback visual mediante Snackbar al sincronizar
+    LaunchedEffect(uiState.syncMessage) {
+        val message = uiState.syncMessage
+        if (!message.isNullOrBlank()) {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearSyncMessage()
+        }
+    }
+
     Scaffold(
         containerColor = BlancoClinico,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("OftApp", fontWeight = FontWeight.Bold, color = BlancoClinico) },
@@ -70,7 +94,6 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            // El botón de registro rápido es exclusivo de personal facultativo/clínico
             if (!isPatient) {
                 FloatingActionButton(
                     onClick = onNavigateToRegister,
@@ -138,11 +161,11 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
+            item { Spacer(modifier = Modifier.height(4.dp)) }
 
-            // 1. Welcome Banner adaptado al rol y usuario
+            // 1. Welcome Banner
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -174,14 +197,24 @@ fun DashboardScreen(
                 }
             }
 
-            // 2. Resumen de Métricas (Totales, Pendientes, Validados)
+            // 2. Banner de Conectividad y Sincronización Automática Offline
+            item {
+                NetworkSyncBanner(
+                    isOnline = uiState.isOnline,
+                    pendingCount = uiState.pendingSyncCount,
+                    isSyncing = uiState.isSyncing,
+                    onSyncClick = { viewModel.syncPendingExams() }
+                )
+            }
+
+            // 3. Resumen de Métricas
             item {
                 Text(
                     text = if (isPatient) "Mis exámenes registrados" else "Resumen general de exámenes",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
                     color = AzulClinico,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -214,7 +247,7 @@ fun DashboardScreen(
                 }
             }
 
-            // 3. Lista de Exámenes Recientes
+            // 4. Lista de Exámenes Recientes
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -276,11 +309,244 @@ fun DashboardScreen(
                         exam = exam,
                         onClick = { onNavigateToDetail(exam.id) }
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+            // 5. Sección de Interoperabilidad HL7 HAPI FHIR
+            item {
+                FhirInteroperabilitySection(
+                    observations = uiState.fhirObservations,
+                    isLoading = uiState.fhirLoading,
+                    errorMessage = uiState.fhirError,
+                    onRefresh = { viewModel.loadFhirObservations() }
+                )
+            }
+
+            item { Spacer(modifier = Modifier.height(70.dp)) }
+        }
+    }
+}
+
+@Composable
+fun NetworkSyncBanner(
+    isOnline: Boolean,
+    pendingCount: Int,
+    isSyncing: Boolean,
+    onSyncClick: () -> Unit
+) {
+    val bgColor = when {
+        !isOnline -> RojoAlerta.copy(alpha = 0.08f)
+        pendingCount > 0 -> AzulClinico.copy(alpha = 0.08f)
+        else -> VerdeSalud.copy(alpha = 0.08f)
+    }
+
+    val borderColor = when {
+        !isOnline -> RojoAlerta.copy(alpha = 0.35f)
+        pendingCount > 0 -> AzulClinico.copy(alpha = 0.35f)
+        else -> VerdeSalud.copy(alpha = 0.35f)
+    }
+
+    val iconColor = when {
+        !isOnline -> RojoAlerta
+        pendingCount > 0 -> AzulClinico
+        else -> VerdeSalud
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = BorderStroke(1.dp, borderColor),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = when {
+                        !isOnline -> Icons.Default.CloudOff
+                        pendingCount > 0 -> Icons.Default.CloudQueue
+                        else -> Icons.Default.CloudDone
+                    },
+                    contentDescription = "Estado de Red",
+                    tint = iconColor,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = if (isOnline) "En línea · Spring Boot" else "Modo Offline",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoOscuro
+                    )
+                    Text(
+                        text = when {
+                            !isOnline && pendingCount > 0 -> "$pendingCount examen(es) guardados localmente"
+                            !isOnline -> "Sin conexión. Datos seguros en Room."
+                            pendingCount > 0 -> "$pendingCount pendiente(s) por sincronizar"
+                            else -> "Todos los exámenes sincronizados"
+                        },
+                        fontSize = 11.sp,
+                        color = GrisAzulado
+                    )
+                }
+            }
+
+            Button(
+                onClick = onSyncClick,
+                enabled = !isSyncing,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AzulClinico,
+                    contentColor = BlancoClinico,
+                    disabledContainerColor = AzulClinico.copy(alpha = 0.7f),
+                    disabledContentColor = BlancoClinico
+                ),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.defaultMinSize(minHeight = 34.dp)
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = BlancoClinico,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Sincronizando...", fontSize = 11.sp, color = BlancoClinico)
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Sincronizar",
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Sincronizar", fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FhirInteroperabilitySection(
+    observations: List<FhirObservationDisplayItem>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onRefresh: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = BlancoClinico),
+        border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Hub,
+                        contentDescription = "Interoperabilidad HL7 FHIR",
+                        tint = AzulClinico,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Interoperabilidad HL7 HAPI FHIR",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = TextoOscuro
+                    )
+                }
+                IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = AzulClinico,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Recargar FHIR",
+                            tint = GrisAzulado,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = "Observaciones clínicas estándar consultadas desde https://hapi.fhir.org/baseR4",
+                fontSize = 11.sp,
+                color = GrisAzulado,
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+
+            if (!errorMessage.isNullOrBlank()) {
+                Text(
+                    text = "Aviso interoperabilidad: $errorMessage",
+                    color = GrisAzulado,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            } else if (observations.isEmpty() && !isLoading) {
+                Text(
+                    text = "Presione el botón de recarga para consultar observaciones FHIR.",
+                    color = GrisAzulado,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    observations.forEach { item ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = AzulClinico.copy(alpha = 0.04f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = item.title,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextoOscuro
+                                    )
+                                    Text(
+                                        text = "Valor: ${item.value} · Fecha: ${item.date}",
+                                        fontSize = 11.sp,
+                                        color = GrisAzulado
+                                    )
+                                }
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text(item.status, fontSize = 9.sp) },
+                                    modifier = Modifier.height(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -350,12 +616,23 @@ fun RecentExamCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = exam.examType,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    color = TextoOscuro
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = exam.examType,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = TextoOscuro
+                    )
+                    if (exam.syncStatus == "PENDIENTE") {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "(Offline)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = RojoAlerta
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${exam.patientName} · ${exam.eye} · $fechaFormateada",

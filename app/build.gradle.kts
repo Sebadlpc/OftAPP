@@ -74,6 +74,14 @@ dependencies {
     // Insforge SDK
     implementation(libs.insforge.kotlin)
 
+    // Retrofit & OkHttp
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
+
+    // Encrypted Security Crypto
+    implementation(libs.androidx.security.crypto)
+
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
     androidTestImplementation(platform(libs.androidx.compose.bom))

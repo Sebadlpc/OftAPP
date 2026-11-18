@@ -11,7 +11,8 @@ import java.util.UUID
     tableName = "exams",
     indices = [
         Index(value = ["consultaId"]),
-        Index(value = ["patientName"])
+        Index(value = ["patientName"]),
+        Index(value = ["syncStatus"])
     ]
 )
 data class ExamEntity(
@@ -26,5 +27,8 @@ data class ExamEntity(
     val branch: String,
     val doctorName: String,
     val notes: String = "",
-    val fileUri: Uri? = null
+    val fileUri: Uri? = null,
+    val syncStatus: String = "SINCRONIZADO", // "SINCRONIZADO" o "PENDIENTE"
+    val remoteId: Long? = null,
+    val lastSyncedAt: Date? = null
 )

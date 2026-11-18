@@ -30,7 +30,7 @@ import com.example.oftapp.data.local.entity.UserEntity
         ExamEntity::class,
         DocumentoEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -23,6 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,10 +106,18 @@ fun HistorialClinicoScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateToHome) {
+                    IconButton(
+                        onClick = onNavigateToHome,
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Volver al inicio"
+                            }
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = null,
                             tint = BlancoClinico
                         )
                     }
@@ -205,10 +217,18 @@ fun HistorialClinicoScreen(
                         },
                         trailingIcon = {
                             if (!isPatient && uiState.searchQuery.isNotBlank()) {
-                                IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                IconButton(
+                                    onClick = { viewModel.onSearchQueryChange("") },
+                                    modifier = Modifier
+                                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                        .semantics {
+                                            role = Role.Button
+                                            contentDescription = "Limpiar texto de búsqueda de paciente"
+                                        }
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Limpiar búsqueda",
+                                        contentDescription = null,
                                         tint = GrisAzulado
                                     )
                                 }
@@ -436,7 +456,13 @@ fun HistorialClinicoScreen(
                     item {
                         OutlinedButton(
                             onClick = { viewModel.loadNextBlock() },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                .semantics {
+                                    role = Role.Button
+                                    contentDescription = "Cargar más exámenes en el historial"
+                                },
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, AzulClinico.copy(alpha = 0.4f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = AzulClinico)
@@ -510,7 +536,12 @@ fun TimelineExamCard(exam: ExamEntity, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
-                .clickable { onClick() },
+                .defaultMinSize(minHeight = 48.dp)
+                .clickable { onClick() }
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = "Examen ${exam.examType} para el paciente ${exam.patientName}, ojo evaluado ${exam.eye}, fecha $fechaTexto, estado ${exam.status}"
+                },
             colors = CardDefaults.cardColors(containerColor = Color.White),
             border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
             shape = RoundedCornerShape(16.dp),

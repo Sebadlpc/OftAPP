@@ -23,6 +23,7 @@ import com.example.oftapp.ui.screens.ListadoBusquedaScreen
 import com.example.oftapp.ui.screens.LoginScreen
 import com.example.oftapp.ui.screens.PerfilScreen
 import com.example.oftapp.ui.screens.RegistroAtencionScreen
+import com.example.oftapp.ui.screens.VisorClinicoScreen
 import com.example.oftapp.ui.viewmodel.AppViewModelFactory
 import com.example.oftapp.ui.viewmodel.DashboardViewModel
 import com.example.oftapp.ui.viewmodel.DetalleExamenViewModel
@@ -171,6 +172,25 @@ fun OftAppNavigation() {
             DetalleExamenScreen(
                 examId = examId,
                 viewModel = detalleViewModel,
+                onBack = { navController.popBackStack() },
+                onNavigateToViewer = { id -> navController.navigate("visor_clinico/$id") }
+            )
+        }
+
+        // 6b. Visor Clínico Integrado (PDF nativo o imágenes con zoom)
+        composable(
+            route = "visor_clinico/{examId}",
+            arguments = listOf(
+                navArgument("examId") {
+                    type = NavType.StringType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val examId = backStackEntry.arguments?.getString("examId") ?: ""
+            VisorClinicoScreen(
+                examId = examId,
+                repository = repository,
                 onBack = { navController.popBackStack() }
             )
         }

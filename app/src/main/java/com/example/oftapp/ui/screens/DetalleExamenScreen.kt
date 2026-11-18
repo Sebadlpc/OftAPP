@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
@@ -23,6 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,6 +43,7 @@ import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
 import com.example.oftapp.ui.viewmodel.DetalleExamenViewModel
 import com.example.oftapp.util.DocumentUtils
+import com.example.oftapp.util.rememberTextToSpeechHelper
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -45,9 +52,12 @@ import java.util.Locale
 fun DetalleExamenScreen(
     examId: String,
     viewModel: DetalleExamenViewModel = viewModel(),
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToViewer: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val ttsHelper = rememberTextToSpeechHelper()
+    val isSpeaking by ttsHelper.isSpeaking.collectAsState()
 
     // Cargar el examen correspondiente al examId
     LaunchedEffect(examId) {
@@ -69,19 +79,35 @@ fun DetalleExamenScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Volver atrás"
+                            }
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver atrás",
+                            contentDescription = null,
                             tint = BlancoClinico
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Opciones adicionales */ }) {
+                    IconButton(
+                        onClick = { /* Opciones adicionales */ },
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Más opciones"
+                            }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Más opciones",
+                            contentDescription = null,
                             tint = BlancoClinico
                         )
                     }
@@ -131,8 +157,57 @@ fun DetalleExamenScreen(
                 // Tarjeta 1: Ficha Clínica Completa
                 InfoExamenCard(exam = exam)
 
-                // Tarjeta 2: Archivo Adjunto con Botones Explícitos de Acción (Previsualizar y Descargar PDF)
-                ArchivoAdjuntoCard(exam = exam)
+                // Botón Accesible WCAG 2.2: Escuchar diagnóstico con TextToSpeech
+                Button(
+                    onClick = {
+                        if (isSpeaking) {
+                            ttsHelper.stop()
+                        } else {
+                            val speechText = buildString {
+                                append("Diagnóstico e informe clínico del paciente ${exam.patientName}. ")
+                                append("Tipo de examen: ${exam.examType}. ")
+                                append("Ojo evaluado: ${exam.eye}. ")
+                                append("Estado de validación: ${exam.status}. ")
+                                if (exam.notes.isNotBlank()) {
+                                    append("Observaciones clínicas: ${exam.notes}. ")
+                                } else {
+                                    append("Sin observaciones clínicas registradas.")
+                                }
+                            }
+                            ttsHelper.speak(speechText)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = if (isSpeaking) "Detener lectura del diagnóstico clínico" else "Escuchar diagnóstico clínico en voz alta"
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSpeaking) RojoAlerta else AzulClinico,
+                        contentColor = BlancoClinico
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isSpeaking) "Detener lectura en voz alta" else "Escuchar diagnóstico",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Tarjeta 2: Archivo Adjunto con Botones Explícitos de Acción (Visor Clínico Integrado y Descargar PDF)
+                ArchivoAdjuntoCard(
+                    exam = exam,
+                    onPreviewClick = { onNavigateToViewer(exam.id) }
+                )
 
                 // Tarjeta 3: Observaciones Clínicas
                 ObservacionesCard(notes = exam.notes)
@@ -157,7 +232,8 @@ fun DetalleExamenScreen(
                         enabled = !isValidated,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .heightIn(min = 48.dp),
                         shape = RoundedCornerShape(26.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = AzulClinico,
@@ -283,11 +359,14 @@ private fun InfoExamenCard(exam: ExamEntity) {
 
 /**
  * Tarjeta de visualización y descarga de documentos con botones explícitos:
- * 1. "Previsualizar PDF/Documento": Lanza Intent(Intent.ACTION_VIEW) con el visor del sistema.
+ * 1. "Ver visor clínico": Navega a VisorClinicoScreen para previsualización nativa (PDF o imágenes).
  * 2. "Descargar PDF": Guarda una copia en la carpeta pública de descargas (Downloads).
  */
 @Composable
-private fun ArchivoAdjuntoCard(exam: ExamEntity) {
+private fun ArchivoAdjuntoCard(
+    exam: ExamEntity,
+    onPreviewClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val hasUri = exam.fileUri != null
     val fileName = exam.fileUri?.lastPathSegment ?: "informe_clinico_${exam.id}.pdf"
@@ -355,19 +434,21 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
 
             HorizontalDivider(color = GrisAzulado.copy(alpha = 0.15f))
 
-            // Botones de acción explícitos
+            // Botones de acción explícitos con áreas táctiles accesibles (>= 48.dp)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Botón 1: Previsualizar PDF/Documento (Intent.ACTION_VIEW)
+                // Botón 1: Visor Clínico Integrado (Sin salir de la app)
                 OutlinedButton(
-                    onClick = {
-                        DocumentUtils.previewDocument(context, exam)
-                    },
+                    onClick = onPreviewClick,
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Abrir visor clínico integrado para previsualizar informe o imagen médica"
+                        },
                     shape = RoundedCornerShape(10.dp),
                     border = BorderStroke(1.dp, AzulClinico),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -378,12 +459,12 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Visibility,
-                        contentDescription = "Previsualizar",
+                        contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Previsualizar PDF",
+                        text = "Ver visor clínico",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -400,7 +481,11 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Descargar informe PDF a la carpeta pública Descargas"
+                        },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AzulClinico,
@@ -410,7 +495,7 @@ private fun ArchivoAdjuntoCard(exam: ExamEntity) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.Download,
-                        contentDescription = "Descargar",
+                        contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))

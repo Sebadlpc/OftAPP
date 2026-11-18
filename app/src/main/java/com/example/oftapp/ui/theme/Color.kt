@@ -26,3 +26,15 @@ val SuperficieOscura = Color(0xFF191C1E)// Tarjetas y superficies elevadas modo 
 val SuperficieContenedorOscura = Color(0xFF23282B)
 val TextoClaro = Color(0xFFE1E3E5)      // Texto principal alto contraste en modo noche
 val GrisClaro = Color(0xFFC0C7CD)       // Texto secundario sobre superficies oscuras
+
+// 3. Paleta de Accesibilidad Extrema WCAG 2.2 AA / AAA (Contraste >= 7:1)
+val AltoContrasteFondoLuz = Color(0xFFFFFFFF)
+val AltoContrasteTextoLuz = Color(0xFF000000)
+val AltoContrastePrimarioLuz = Color(0xFF002A54) // Ratio > 12:1 sobre blanco
+val AltoContrasteBordeLuz = Color(0xFF000000)
+
+val AltoContrasteFondoNoche = Color(0xFF000000)
+val AltoContrasteTextoNoche = Color(0xFFFFFFFF)
+val AltoContrastePrimarioNoche = Color(0xFF80D8FF) // Ratio > 11:1 sobre negro
+val AltoContrasteBordeNoche = Color(0xFFFFFFFF)
+val AltoContrasteAmarilloAccesible = Color(0xFFFFD600) // Amarillo accesible de alta visibilidad

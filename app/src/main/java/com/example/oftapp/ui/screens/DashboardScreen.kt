@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.outlined.History
@@ -34,6 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +53,7 @@ import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
 import com.example.oftapp.ui.viewmodel.DashboardViewModel
 import com.example.oftapp.ui.viewmodel.FhirObservationDisplayItem
+import com.example.oftapp.util.rememberTextToSpeechHelper
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -64,6 +71,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isPatient = userRole.equals("Paciente", ignoreCase = true)
     val snackbarHostState = remember { SnackbarHostState() }
+    val ttsHelper = rememberTextToSpeechHelper()
+    val isSpeaking by ttsHelper.isSpeaking.collectAsState()
 
     LaunchedEffect(userRole) {
         viewModel.setUserRole(userRole, "Juan Pérez")
@@ -88,6 +97,42 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("OftApp", fontWeight = FontWeight.Bold, color = BlancoClinico) },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (isSpeaking) {
+                                ttsHelper.stop()
+                            } else {
+                                val summarySpeech = buildString {
+                                    append("Resumen clínico de OftApp. ")
+                                    append("Total de exámenes registrados: ${uiState.totalCount}. ")
+                                    append("Exámenes pendientes de validación: ${uiState.pendingCount}. ")
+                                    append("Exámenes validados clínicamente: ${uiState.validatedCount}. ")
+                                    val recent = uiState.recentExams.firstOrNull()
+                                    if (recent != null) {
+                                        append("Atención más reciente: ${recent.examType} para el paciente ${recent.patientName}, ojo evaluado ${recent.eye}, estado ${recent.status}. ")
+                                        if (recent.notes.isNotBlank()) {
+                                            append("Observaciones: ${recent.notes}.")
+                                        }
+                                    }
+                                }
+                                ttsHelper.speak(summarySpeech)
+                            }
+                        },
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = if (isSpeaking) "Detener resumen audible" else "Escuchar resumen general de exámenes en voz alta"
+                            }
+                    ) {
+                        Icon(
+                            imageVector = if (isSpeaking) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = null,
+                            tint = BlancoClinico
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AzulClinico
                 )
@@ -260,13 +305,22 @@ fun DashboardScreen(
                         fontSize = 16.sp,
                         color = AzulClinico
                     )
-                    Text(
-                        text = "Ver todos",
-                        fontSize = 13.sp,
-                        color = AzulClinico,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable { onNavigateToSearch() }
-                    )
+                    TextButton(
+                        onClick = onNavigateToSearch,
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Ver listado completo de exámenes clínicos"
+                            }
+                    ) {
+                        Text(
+                            text = "Ver todos",
+                            fontSize = 13.sp,
+                            color = AzulClinico,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 
@@ -412,7 +466,12 @@ fun NetworkSyncBanner(
                     disabledContentColor = BlancoClinico
                 ),
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.defaultMinSize(minHeight = 34.dp)
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = if (isSyncing) "Sincronizando exámenes pendientes con el servidor" else "Sincronizar exámenes locales con el servidor"
+                    }
             ) {
                 if (isSyncing) {
                     CircularProgressIndicator(
@@ -470,19 +529,27 @@ fun FhirInteroperabilitySection(
                         color = TextoOscuro
                     )
                 }
-                IconButton(onClick = onRefresh, modifier = Modifier.size(28.dp)) {
+                IconButton(
+                    onClick = onRefresh,
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Recargar observaciones clínicas HL7 FHIR"
+                        }
+                ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(18.dp),
                             color = AzulClinico,
                             strokeWidth = 2.dp
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Recargar FHIR",
+                            contentDescription = null,
                             tint = GrisAzulado,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -539,8 +606,13 @@ fun FhirInteroperabilitySection(
                                 }
                                 SuggestionChip(
                                     onClick = {},
-                                    label = { Text(item.status, fontSize = 9.sp) },
-                                    modifier = Modifier.height(24.dp)
+                                    label = { Text(item.status, fontSize = 11.sp) },
+                                    modifier = Modifier
+                                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                        .semantics {
+                                            role = Role.Button
+                                            contentDescription = "Estado de observación clínica: ${item.status}"
+                                        }
                                 )
                             }
                         }
@@ -603,7 +675,12 @@ fun RecentExamCard(
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .defaultMinSize(minHeight = 48.dp)
+            .clickable { onClick() }
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                contentDescription = "Examen de ${exam.examType} para el paciente ${exam.patientName}, ojo evaluado ${exam.eye}, fecha $fechaFormateada, estado ${exam.status}"
+            },
         colors = CardDefaults.outlinedCardColors(containerColor = BlancoClinico),
         border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(16.dp)

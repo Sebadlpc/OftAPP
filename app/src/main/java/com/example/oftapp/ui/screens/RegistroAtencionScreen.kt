@@ -12,6 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,10 +69,18 @@ fun RegistroAtencionScreen(
             TopAppBar(
                 title = { Text("Registrar examen", color = BlancoClinico, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.Button
+                                contentDescription = "Volver atrás"
+                            }
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Atrás",
+                            contentDescription = null,
                             tint = BlancoClinico
                         )
                     }
@@ -144,7 +156,13 @@ fun RegistroAtencionScreen(
                             onClick = {
                                 viewModel.onBranchChange(opcion)
                                 expandedSede = false
-                            }
+                            },
+                            modifier = Modifier
+                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                .semantics {
+                                    role = Role.DropdownList
+                                    contentDescription = "Sede clínica: $opcion"
+                                }
                         )
                     }
                 }
@@ -166,7 +184,13 @@ fun RegistroAtencionScreen(
                             contentColor = if (seleccionado) BlancoClinico else TextoOscuro
                         ),
                         border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado.copy(alpha = 0.5f)),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.RadioButton
+                                contentDescription = "Tipo de examen $examen${if (seleccionado) ", seleccionado" else ""}"
+                            }
                     ) {
                         Text(examen)
                     }
@@ -186,7 +210,13 @@ fun RegistroAtencionScreen(
                             contentColor = if (seleccionado) BlancoClinico else TextoOscuro
                         ),
                         border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado.copy(alpha = 0.5f)),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.RadioButton
+                                contentDescription = "Tipo de examen $examen${if (seleccionado) ", seleccionado" else ""}"
+                            }
                     ) {
                         Text(examen)
                     }
@@ -209,7 +239,13 @@ fun RegistroAtencionScreen(
                             contentColor = if (seleccionado) BlancoClinico else TextoOscuro
                         ),
                         border = BorderStroke(1.dp, if (seleccionado) AzulClinico else GrisAzulado.copy(alpha = 0.5f)),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .semantics {
+                                role = Role.RadioButton
+                                contentDescription = "Ojo evaluado $ojo${if (seleccionado) ", seleccionado" else ""}"
+                            }
                     ) {
                         Text(
                             text = ojo,
@@ -247,7 +283,12 @@ fun RegistroAtencionScreen(
                 enabled = !uiState.isSaving,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                    .heightIn(min = 48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "Guardar atención clínica y continuar a carga de documentos"
+                    },
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AzulClinico,

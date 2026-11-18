@@ -82,6 +82,10 @@ dependencies {
     // Encrypted Security Crypto
     implementation(libs.androidx.security.crypto)
 
+    // Coil Compose & DataStore Preferences
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.datastore.preferences)
+
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
     androidTestImplementation(platform(libs.androidx.compose.bom))

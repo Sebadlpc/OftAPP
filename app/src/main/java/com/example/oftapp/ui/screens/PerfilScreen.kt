@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Email
@@ -25,9 +26,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.oftapp.data.local.datastore.AccessibilityPreferences
+import com.example.oftapp.data.local.datastore.AccessibilitySettings
 import com.example.oftapp.data.repository.OftAppRepository
 import com.example.oftapp.ui.theme.AzulClinico
 import com.example.oftapp.ui.theme.BlancoClinico
@@ -36,6 +44,7 @@ import com.example.oftapp.ui.theme.RojoAlerta
 import com.example.oftapp.ui.theme.TextoOscuro
 import com.example.oftapp.ui.theme.VerdeSalud
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +57,12 @@ fun PerfilScreen(
     onNavigateToHistory: () -> Unit = {}
 ) {
     val isPatient = userRole.equals("Paciente", ignoreCase = true)
+    val context = LocalContext.current
+    val accessibilityPrefs = remember { AccessibilityPreferences.getInstance(context) }
+    val accessibilitySettings by accessibilityPrefs.accessibilitySettings.collectAsState(
+        initial = AccessibilitySettings()
+    )
+    val coroutineScope = rememberCoroutineScope()
 
     // Datos personales diferenciados
     val nombreUsuario = when {
@@ -343,6 +358,151 @@ fun PerfilScreen(
                         label = "Centro Clínico",
                         valor = "Clínica Oftalmológica OftAPP - Sede Central"
                     )
+                }
+            }
+
+            // TARJETA DE ACCESIBILIDAD Y ASISTENCIA VISUAL (WCAG 2.2 AA)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = BlancoClinico),
+                border = BorderStroke(1.dp, GrisAzulado.copy(alpha = 0.25f)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccessibilityNew,
+                            contentDescription = null,
+                            tint = AzulClinico,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Accesibilidad y Ajustes Visuales (WCAG 2.2 AA)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = AzulClinico
+                        )
+                    }
+
+                    HorizontalDivider(color = GrisAzulado.copy(alpha = 0.15f))
+
+                    // 1. Control de Alto Contraste (>= 7:1)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics(mergeDescendants = true) {
+                                role = Role.Switch
+                                contentDescription = "Modo Alto Contraste con relación superior a 7 a 1 para personas con visión reducida. Actualmente ${if (accessibilitySettings.highContrastMode) "activado" else "desactivado"}."
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Modo Alto Contraste (>= 7:1)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextoOscuro
+                            )
+                            Text(
+                                text = "Aumenta la legibilidad para baja visión conforme al estándar WCAG 2.2 AAA/AA.",
+                                fontSize = 11.sp,
+                                color = GrisAzulado
+                            )
+                        }
+                        Switch(
+                            checked = accessibilitySettings.highContrastMode,
+                            onCheckedChange = { isChecked ->
+                                coroutineScope.launch {
+                                    accessibilityPrefs.setHighContrastMode(isChecked)
+                                }
+                            },
+                            modifier = Modifier
+                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                .semantics {
+                                    contentDescription = "Activar o desactivar modo alto contraste"
+                                }
+                        )
+                    }
+
+                    HorizontalDivider(color = GrisAzulado.copy(alpha = 0.15f))
+
+                    // 2. Control de Tamaño de Fuente Dinámico (1.0f, 1.2f, 1.4f)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Tamaño de Fuente Dinámico",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextoOscuro
+                        )
+                        Text(
+                            text = "Ajusta la escala tipográfica sin perder legibilidad ni estructura clínica:",
+                            fontSize = 11.sp,
+                            color = GrisAzulado
+                        )
+
+                        val scales = listOf(
+                            1.0f to "Normal (100%)",
+                            1.2f to "Medio (120%)",
+                            1.4f to "Grande (140%)"
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            scales.forEach { (factor, label) ->
+                                val isSelected = (accessibilitySettings.fontScaleFactor - factor).let { kotlin.math.abs(it) < 0.05f }
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            accessibilityPrefs.setFontScaleFactor(factor)
+                                        }
+                                    },
+                                    label = {
+                                        Text(
+                                            text = label,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        containerColor = Color.White,
+                                        labelColor = TextoOscuro,
+                                        selectedContainerColor = AzulClinico,
+                                        selectedLabelColor = BlancoClinico
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        borderColor = if (isSelected) AzulClinico else GrisAzulado.copy(alpha = 0.4f),
+                                        selectedBorderColor = AzulClinico,
+                                        enabled = true,
+                                        selected = isSelected
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                        .semantics {
+                                            role = Role.RadioButton
+                                            contentDescription = "Escala tipográfica $label${if (isSelected) ", seleccionada" else ""}"
+                                        }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
